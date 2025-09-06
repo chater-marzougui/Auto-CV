@@ -1,0 +1,20 @@
+{
+  "name": "auto-cv",
+  "version": "1.0.0",
+  "description": "Updates the projects section of a cv using github projects",
+  "main": "index.js",
+  "scripts": {
+    "backend": "backend\\venv\\Scripts\\activate && cd backend && python main.py",
+    "frontend": "cd frontend && npm start"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/chater-marzougui/Auto-CV.git"
+  },
+  "author": "Chater Marzougui",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/chater-marzougui/Auto-CV/issues"
+  },
+  "homepage": "https://github.com/chater-marzougui/Auto-CV#readme"
+}

@@ -81,11 +81,11 @@ export GITHUB_TOKEN="your_github_personal_access_token"
 uvicorn app.main:app --reload
 ```
 
-The API will be available at `http://localhost:8000`
+The API will be available at `http://localhost:5000`
 
 ## API Documentation
 
-Once running, visit `http://localhost:8000/docs` for interactive API documentation.
+Once running, visit `http://localhost:5000/docs` for interactive API documentation.
 
 ### Key Endpoints
 
@@ -114,14 +114,14 @@ Once running, visit `http://localhost:8000/docs` for interactive API documentati
 
 ### 1. Scrape GitHub Profile
 ```bash
-curl -X POST "http://localhost:8000/api/v1/scrape-github" \
+curl -X POST "http://localhost:5000/api/v1/scrape-github" \
   -H "Content-Type: application/json" \
   -d '{"github_url": "https://github.com/username"}'
 ```
 
 ### 2. Match Projects to Job
 ```bash
-curl -X POST "http://localhost:8000/api/v1/match-projects" \
+curl -X POST "http://localhost:5000/api/v1/match-projects" \
   -H "Content-Type: application/json" \
   -d '{
     "title": "Full Stack Developer",
@@ -132,7 +132,7 @@ curl -X POST "http://localhost:8000/api/v1/match-projects" \
 
 ### 3. Generate Full Application
 ```bash
-curl -X POST "http://localhost:8000/api/v1/generate-full-application" \
+curl -X POST "http://localhost:5000/api/v1/generate-full-application" \
   -H "Content-Type: application/json" \
   -d '{
     "job_description": {

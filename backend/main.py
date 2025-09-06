@@ -2,7 +2,15 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from app.routes import jobs, generate
 from app.services.github_scraper import GitHubScraper
+from pydantic import BaseModel
+from dotenv import load_dotenv
 import os
+
+# Point directly to the backend/.env file
+load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), ".env"))
+
+class ScrapeRequest(BaseModel):
+    github_username: str
 
 app = FastAPI(
     title="CV Generator API",
@@ -32,18 +40,19 @@ async def health_check():
     return {"status": "healthy"}
 
 @app.post("/api/v1/scrape-github")
-async def scrape_github_profile(github_url: str):
+async def scrape_github_profile(req: ScrapeRequest):
     """
     Scrape all repositories from a GitHub profile and generate project summaries
     """
     try:
+        github_username = req.github_username
+        print(f"Starting to scrape GitHub profile: {github_username}")
         scraper = GitHubScraper()
-        username = github_url.split('/')[-1]
-        projects = await scraper.scrape_and_process_repos(username)
+        projects = await scraper.scrape_and_process_repos(github_username)
         return {"message": f"Successfully scraped {len(projects)} projects", "projects_count": len(projects)}
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
+    uvicorn.run("main:app", host="0.0.0.0", port=5000, reload=True)

@@ -8,7 +8,6 @@ from app.models.project import Project
 from app.services.embeddings import EmbeddingService
 import aiofiles
 
-
 class GitHubScraper:
     def __init__(self, github_token: Optional[str] = None):
         """
@@ -30,28 +29,32 @@ class GitHubScraper:
         Scrape all repositories from a GitHub user and process them
         """
         print(f"Scraping repositories for user: {username}")
-        
+        print("Using GitHub token:", "Yes" if self.github_token else "No")
+        if not self.github_token:
+            print("Warning: No GitHub token provided. You will hit rate limits.")
+            return []
         try:
             user = self.github.get_user(username)
             repos = user.get_repos(type='owner')  # Only get owned repos, not forks
             
             projects = []
-            
+            print(f"Found {repos.totalCount} repositories")
             for repo in repos:
                 if repo.fork:  # Skip forked repositories
                     continue
                     
                 print(f"Processing repository: {repo.name}")
-                project = await self._process_repository(repo)
+                project = self._process_repository(repo)
                 if project:
                     projects.append(project)
+                    break # For testing, process only the first repo
             
             # Save projects to JSON file
             await self._save_projects(projects)
             
             # Generate embeddings for all projects
             await self.embedding_service.generate_embeddings_for_projects(projects)
-            
+
             print(f"Successfully processed {len(projects)} projects")
             return projects
             
@@ -59,7 +62,7 @@ class GitHubScraper:
             print(f"Error scraping GitHub profile: {str(e)}")
             raise e
     
-    async def _process_repository(self, repo) -> Optional[Project]:
+    def _process_repository(self, repo) -> Optional[Project]:
         """
         Process a single repository and extract information
         """
@@ -71,8 +74,8 @@ class GitHubScraper:
             technologies = self._extract_technologies(repo, readme_content)
             
             # Generate AI summaries
-            three_liner = await self._generate_three_liner(repo, readme_content)
-            detailed_paragraph = await self._generate_detailed_paragraph(repo, readme_content, technologies)
+            three_liner = self._generate_three_liner(repo, readme_content)
+            detailed_paragraph = self._generate_detailed_paragraph(repo, readme_content, technologies)
             
             project = Project(
                 name=repo.name,
@@ -100,7 +103,11 @@ class GitHubScraper:
         Get README content from repository
         """
         try:
-            readme_files = ['README.md', 'README.txt', 'README.rst', 'readme.md', 'Readme.md']
+            # Try all common README file naming conventions
+            readme_files = [
+                'README.md', 'README.MD', 'readme.md', 'Readme.md',
+                'README', 'ReadMe', 'readme'
+            ]
             
             for readme_file in readme_files:
                 try:
