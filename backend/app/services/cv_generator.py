@@ -1,10 +1,10 @@
+from asyncio import create_subprocess_exec
 import os
 import subprocess
 import tempfile
 from jinja2 import Template, Environment, FileSystemLoader
 from app.models.project import MatchedProject, CVGenerationRequest
 import shutil
-import aiofiles
 
 class CVGenerator:
     def __init__(self):
@@ -18,7 +18,7 @@ class CVGenerator:
         # Initialize Jinja2 environment
         self.jinja_env = Environment(loader=FileSystemLoader(self.templates_dir))
     
-    async def generate_cv(self, request: CVGenerationRequest) -> str:
+    def generate_cv(self, request: CVGenerationRequest) -> str:
         """
         Generate CV PDF from LaTeX template
         """
@@ -50,14 +50,14 @@ class CVGenerator:
             latex_content = template.render(**template_data)
             
             # Generate PDF
-            pdf_path = await self._compile_latex(latex_content, "cv")
+            pdf_path = self._compile_latex(latex_content, "cv")
             
             return pdf_path
             
         except Exception as e:
             raise RuntimeError(f"Error generating CV: {str(e)}")
     
-    async def _compile_latex(self, latex_content: str, filename_prefix: str) -> str:
+    def _compile_latex(self, latex_content: str, filename_prefix: str) -> str:
         """
         Compile LaTeX content to PDF
         """
@@ -68,21 +68,20 @@ class CVGenerator:
             
             with tempfile.TemporaryDirectory() as temp_dir:
                 tex_file = os.path.join(temp_dir, f"{filename_prefix}.tex")
-                async with aiofiles.open(tex_file, 'w', encoding='utf-8') as f:
-                    await f.write(latex_content)
+                with open(tex_file, 'w', encoding='utf-8') as f:
                     f.write(latex_content)
                 
                 import asyncio
 
                 # Compile with pdflatex (run twice for references)
                 for _ in range(2):
-                    process = await asyncio.create_subprocess_exec(
+                    process = create_subprocess_exec(
                         'pdflatex', '-interaction=nonstopmode', '-output-directory', temp_dir, tex_file,
                         stdout=asyncio.subprocess.PIPE,
                         stderr=asyncio.subprocess.PIPE,
                         cwd=temp_dir
                     )
-                    _ , stderr = await process.communicate()
+                    _ , stderr = process.communicate()
 
                     if process.returncode != 0:
                         raise RuntimeError(f"LaTeX compilation failed: {stderr.decode()}")

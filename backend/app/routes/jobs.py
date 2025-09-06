@@ -7,13 +7,13 @@ from app.services.github_scraper import GitHubScraper
 router = APIRouter()
 
 @router.post("/match-projects", response_model=List[MatchedProject])
-async def match_projects_to_job(job_description: JobDescription, top_k: int = 4):
+def match_projects_to_job(job_description: JobDescription, top_k: int = 4):
     """
     Match projects to a job description and return the most relevant ones
     """
     try:
         embedding_service = EmbeddingService()
-        matched_projects = await embedding_service.find_matching_projects(job_description, top_k)
+        matched_projects = embedding_service.find_matching_projects(job_description, top_k)
         
         if not matched_projects:
             raise HTTPException(
@@ -27,13 +27,13 @@ async def match_projects_to_job(job_description: JobDescription, top_k: int = 4)
         raise HTTPException(status_code=500, detail=f"Error matching projects: {str(e)}")
 
 @router.get("/projects")
-async def get_all_projects():
+def get_all_projects():
     """
     Get all scraped projects
     """
     try:
         scraper = GitHubScraper()
-        projects = await scraper.load_projects()
+        projects = scraper.load_projects()
         
         return {
             "total_projects": len(projects),
@@ -44,13 +44,13 @@ async def get_all_projects():
         raise HTTPException(status_code=500, detail=f"Error loading projects: {str(e)}")
 
 @router.get("/projects/{project_name}")
-async def get_project_details(project_name: str):
+def get_project_details(project_name: str):
     """
     Get details for a specific project
     """
     try:
         scraper = GitHubScraper()
-        projects = await scraper.load_projects()
+        projects = scraper.load_projects()
         
         project = next((p for p in projects if p.name == project_name), None)
         
@@ -63,7 +63,7 @@ async def get_project_details(project_name: str):
         raise HTTPException(status_code=500, detail=f"Error loading project: {str(e)}")
 
 @router.post("/analyze-job")
-async def analyze_job_description(job_description: JobDescription):
+def analyze_job_description(job_description: JobDescription):
     """
     Analyze a job description and extract key requirements/technologies
     """
@@ -105,19 +105,19 @@ async def analyze_job_description(job_description: JobDescription):
         raise HTTPException(status_code=500, detail=f"Error analyzing job description: {str(e)}")
 
 @router.post("/refresh-embeddings")
-async def refresh_embeddings():
+def refresh_embeddings():
     """
     Refresh embeddings for all projects (useful after adding new projects)
     """
     try:
         scraper = GitHubScraper()
-        projects = await scraper.load_projects()
+        projects = scraper.load_projects()
         
         if not projects:
             raise HTTPException(status_code=404, detail="No projects found. Please scrape GitHub repositories first.")
         
         embedding_service = EmbeddingService()
-        await embedding_service.generate_embeddings_for_projects(projects)
+        embedding_service.generate_embeddings_for_projects(projects)
         
         return {
             "message": f"Successfully refreshed embeddings for {len(projects)} projects"

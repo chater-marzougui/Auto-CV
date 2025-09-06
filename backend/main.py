@@ -32,15 +32,15 @@ app.include_router(jobs.router, prefix="/api/v1")
 app.include_router(generate.router, prefix="/api/v1")
 
 @app.get("/")
-async def root():
+def root():
     return {"message": "CV Generator API is running"}
 
 @app.get("/health")
-async def health_check():
+def health_check():
     return {"status": "healthy"}
 
 @app.post("/api/v1/scrape-github")
-async def scrape_github_profile(req: ScrapeRequest):
+def scrape_github_profile(req: ScrapeRequest):
     """
     Scrape all repositories from a GitHub profile and generate project summaries
     """
@@ -48,7 +48,7 @@ async def scrape_github_profile(req: ScrapeRequest):
         github_username = req.github_username
         print(f"Starting to scrape GitHub profile: {github_username}")
         scraper = GitHubScraper()
-        projects = await scraper.scrape_and_process_repos(github_username)
+        projects = scraper.scrape_and_process_repos(github_username)
         return {"message": f"Successfully scraped {len(projects)} projects", "projects_count": len(projects)}
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))

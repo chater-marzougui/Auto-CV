@@ -6,7 +6,8 @@ from github import Github
 from datetime import datetime
 from app.models.project import Project
 from app.services.embeddings import EmbeddingService
-import aiofiles
+from app.services.gemini_service import GeminiService
+from github import Repository
 
 class GitHubScraper:
     def __init__(self, github_token: Optional[str] = None):
@@ -18,13 +19,14 @@ class GitHubScraper:
         self.github_token = github_token or os.getenv("GITHUB_TOKEN")
         self.github = Github(self.github_token) if self.github_token else Github()
         self.embedding_service = EmbeddingService()
+        self.gemini_service = GeminiService()
         self.data_dir = "app/data"
         self.projects_file = os.path.join(self.data_dir, "projects.json")
         
         # Create data directory if it doesn't exist
         os.makedirs(self.data_dir, exist_ok=True)
     
-    async def scrape_and_process_repos(self, username: str) -> List[Project]:
+    def scrape_and_process_repos(self, username: str) -> List[Project]:
         """
         Scrape all repositories from a GitHub user and process them
         """
@@ -33,6 +35,7 @@ class GitHubScraper:
         if not self.github_token:
             print("Warning: No GitHub token provided. You will hit rate limits.")
             return []
+        
         try:
             user = self.github.get_user(username)
             repos = user.get_repos(type='owner')  # Only get owned repos, not forks
@@ -47,13 +50,13 @@ class GitHubScraper:
                 project = self._process_repository(repo)
                 if project:
                     projects.append(project)
-                    break # For testing, process only the first repo
+                break # For testing, process only the first repo
             
             # Save projects to JSON file
-            await self._save_projects(projects)
+            self._save_projects(projects)
             
             # Generate embeddings for all projects
-            await self.embedding_service.generate_embeddings_for_projects(projects)
+            self.embedding_service.generate_embeddings_for_projects(projects)
 
             print(f"Successfully processed {len(projects)} projects")
             return projects
@@ -62,21 +65,32 @@ class GitHubScraper:
             print(f"Error scraping GitHub profile: {str(e)}")
             raise e
     
-    def _process_repository(self, repo) -> Optional[Project]:
+    def _process_repository(self, repo: Repository) -> Optional[Project]:
         """
         Process a single repository and extract information
         """
         try:
             # Get README content
             readme_content = self._get_readme_content(repo)
-            
-            # Extract technologies from various sources
-            technologies = self._extract_technologies(repo, readme_content)
-            
+            if not readme_content or readme_content.startswith("Error"):
+                print(f"Skipping repository {repo.name} due to missing or unreadable README")
+                return None
+            # Get repository file tree
+            tree = self._get_repo_trees(repo)
+                        
             # Generate AI summaries
-            three_liner = self._generate_three_liner(repo, readme_content)
-            detailed_paragraph = self._generate_detailed_paragraph(repo, readme_content, technologies)
+            gemini_response = self.gemini_service.generate_project_summary(repo.name, readme_content, tree)
+            three_liner = gemini_response.get("three_liner", "")
+            detailed_paragraph = gemini_response.get("detailed", "")
+            technologies = gemini_response.get("technologies", "")
             
+            if not three_liner:
+                three_liner = self._generate_three_liner(repo, readme_content)
+            if not detailed_paragraph:
+                detailed_paragraph = self._generate_detailed_paragraph(repo, readme_content, technologies)
+            if not technologies:
+                technologies = self._extract_technologies(repo, readme_content)
+                
             project = Project(
                 name=repo.name,
                 url=repo.html_url,
@@ -85,6 +99,7 @@ class GitHubScraper:
                 three_liner=three_liner,
                 detailed_paragraph=detailed_paragraph,
                 technologies=technologies,
+                tree=tree,
                 stars=repo.stargazers_count,
                 forks=repo.forks_count,
                 language=repo.language or "Unknown",
@@ -120,6 +135,42 @@ class GitHubScraper:
 
         except Exception:
             return "Error reading README"
+    
+    def _get_repo_trees(self, repo: Repository) -> List[str]:
+        """
+        Recursively get all files in the repository
+        """
+        try:
+            # First, try to get the default branch name
+            default_branch = repo.default_branch
+            print(f"Trying default branch: {default_branch}")
+            
+            tree = repo.get_git_tree(sha=default_branch, recursive=True).tree
+            file_paths = [item.path for item in tree if item.type == 'blob']
+            print(f"Found {len(file_paths)} files in repository")
+            return file_paths
+            
+        except Exception as e:
+            print(f"Error with default branch '{default_branch}': {e}")
+            
+            # Fallback: try common branch names
+            common_branches = ['main', 'master']
+            
+            for branch in common_branches:
+                if branch == default_branch:
+                    continue  # Already tried this one
+                    
+                try:
+                    tree = repo.get_git_tree(sha=branch, recursive=True).tree
+                    file_paths = [item.path for item in tree if item.type == 'blob']
+                    return file_paths
+                    
+                except Exception as fallback_e:
+                    print(f"Failed with branch '{branch}': {fallback_e}")
+                    continue
+            
+            print("All attempts to get repository tree failed")
+            return []
     
     def _extract_technologies(self, repo, readme_content: str) -> List[str]:
         """
@@ -219,7 +270,7 @@ class GitHubScraper:
         except Exception:
             return f"{repo.name} is a technical project demonstrating software development skills and practical implementation experience."
     
-    async def _save_projects(self, projects: List[Project]):
+    def _save_projects(self, projects: List[Project]):
         """
         Save projects to JSON file
         """
@@ -233,15 +284,15 @@ class GitHubScraper:
                 project_dict['updated_at'] = project.updated_at.isoformat()
                 projects_data.append(project_dict)
             
-            async with aiofiles.open(self.projects_file, 'w', encoding='utf-8') as f:
-                await f.write(json.dumps(projects_data, indent=2, ensure_ascii=False))
+            with open(self.projects_file, 'w', encoding='utf-8') as f:
+                f.write(json.dumps(projects_data, indent=2, ensure_ascii=False))
                 
             print(f"Saved {len(projects)} projects to {self.projects_file}")
             
         except Exception as e:
             print(f"Error saving projects: {str(e)}")
     
-    async def load_projects(self) -> List[Project]:
+    def load_projects(self) -> List[Project]:
         """
         Load projects from JSON file
         """
@@ -249,8 +300,8 @@ class GitHubScraper:
             if not os.path.exists(self.projects_file):
                 return []
                 
-            async with aiofiles.open(self.projects_file, 'r', encoding='utf-8') as f:
-                file_content = await f.read()
+            with open(self.projects_file, 'r', encoding='utf-8') as f:
+                file_content = f.read()
                 projects_data = json.loads(file_content)
             
             projects = []

@@ -10,7 +10,7 @@ from app.services.embeddings import EmbeddingService
 router = APIRouter()
 
 @router.post("/generate-cv")
-async def generate_cv(request: CVGenerationRequest):
+def generate_cv(request: CVGenerationRequest):
     """
     Generate a CV PDF based on matched projects and personal information
     """
@@ -18,10 +18,10 @@ async def generate_cv(request: CVGenerationRequest):
         cv_generator = CVGenerator()
         
         # Ensure default template exists
-        await cv_generator.create_default_cv_template()
+        cv_generator.create_default_cv_template()
         
         # Generate CV
-        pdf_path = await cv_generator.generate_cv(request)
+        pdf_path = cv_generator.generate_cv(request)
         
         return {
             "message": "CV generated successfully",
@@ -33,7 +33,7 @@ async def generate_cv(request: CVGenerationRequest):
         raise HTTPException(status_code=500, detail=f"Error generating CV: {str(e)}")
 
 @router.post("/generate-cover-letter")
-async def generate_cover_letter(request: CoverLetterRequest):
+def generate_cover_letter(request: CoverLetterRequest):
     """
     Generate a cover letter PDF based on job description and matched projects
     """
@@ -41,10 +41,10 @@ async def generate_cover_letter(request: CoverLetterRequest):
         letter_generator = CoverLetterGenerator()
         
         # Ensure default template exists
-        await letter_generator.create_default_cover_letter_template()
+        letter_generator.create_default_cover_letter_template()
         
         # Generate cover letter
-        pdf_path = await letter_generator.generate_cover_letter(request)
+        pdf_path = letter_generator.generate_cover_letter(request)
         
         return {
             "message": "Cover letter generated successfully",
@@ -56,7 +56,7 @@ async def generate_cover_letter(request: CoverLetterRequest):
         raise HTTPException(status_code=500, detail=f"Error generating cover letter: {str(e)}")
 
 @router.post("/generate-full-application")
-async def generate_full_application(
+def generate_full_application(
     job_description: JobDescription,
     personal_info: Dict[str, Any],
     top_k: int = 4
@@ -67,7 +67,7 @@ async def generate_full_application(
     try:
         # Step 1: Find matching projects
         embedding_service = EmbeddingService()
-        matched_projects = await embedding_service.find_matching_projects(job_description, top_k)
+        matched_projects = embedding_service.find_matching_projects(job_description, top_k)
         
         if not matched_projects:
             raise HTTPException(
@@ -82,8 +82,8 @@ async def generate_full_application(
         )
         
         cv_generator = CVGenerator()
-        await cv_generator.create_default_cv_template()
-        cv_path = await cv_generator.generate_cv(cv_request)
+        cv_generator.create_default_cv_template()
+        cv_path = cv_generator.generate_cv(cv_request)
         
         # Step 3: Generate Cover Letter
         letter_request = CoverLetterRequest(
@@ -93,8 +93,8 @@ async def generate_full_application(
         )
         
         letter_generator = CoverLetterGenerator()
-        await letter_generator.create_default_cover_letter_template()
-        letter_path = await letter_generator.generate_cover_letter(letter_request)
+        letter_generator.create_default_cover_letter_template()
+        letter_path = letter_generator.generate_cover_letter(letter_request)
         
         return {
             "message": "Full application generated successfully",
@@ -121,7 +121,7 @@ async def generate_full_application(
         raise HTTPException(status_code=500, detail=f"Error generating full application: {str(e)}")
 
 @router.get("/download/{filename}")
-async def download_file(filename: str):
+def download_file(filename: str):
     """
     Download generated PDF files
     """
@@ -195,7 +195,7 @@ def upload_cover_letter_template(file: UploadFile = File(...)):
         raise HTTPException(status_code=500, detail=f"Error uploading template: {str(e)}")
 
 @router.get("/templates")
-async def list_templates():
+def list_templates():
     """
     List available templates
     """
@@ -221,7 +221,7 @@ async def list_templates():
         raise HTTPException(status_code=500, detail=f"Error listing templates: {str(e)}")
 
 @router.delete("/output/{filename}")
-async def delete_output_file(filename: str):
+def delete_output_file(filename: str):
     """
     Delete generated files from output directory
     """
@@ -241,7 +241,7 @@ async def delete_output_file(filename: str):
         raise HTTPException(status_code=500, detail=f"Error deleting file: {str(e)}")
 
 @router.get("/output")
-async def list_output_files():
+def list_output_files():
     """
     List all generated files in output directory
     """

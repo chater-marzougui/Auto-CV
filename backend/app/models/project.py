@@ -10,6 +10,7 @@ class Project(BaseModel):
     three_liner: str  # AI-generated 3-line summary
     detailed_paragraph: str  # AI-generated detailed paragraph
     technologies: List[str]  # Extracted technologies
+    tree: List[str]
     stars: int
     forks: int
     language: str

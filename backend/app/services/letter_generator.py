@@ -5,7 +5,6 @@ import shutil
 from typing import List, Dict, Any
 from jinja2 import Template, Environment, FileSystemLoader
 from app.models.project import MatchedProject, CoverLetterRequest, JobDescription
-import aiofiles
 
 class CoverLetterGenerator:
     def __init__(self):
@@ -20,7 +19,7 @@ class CoverLetterGenerator:
         # Initialize Jinja2 environment
         self.jinja_env = Environment(loader=FileSystemLoader(self.templates_dir))
     
-    async def generate_cover_letter(self, request: CoverLetterRequest) -> str:
+    def generate_cover_letter(self, request: CoverLetterRequest) -> str:
         """
         Generate cover letter PDF from template
         """
@@ -38,7 +37,7 @@ class CoverLetterGenerator:
                 },
                 'projects': [],
                 'relevant_skills': self._extract_relevant_skills(request),
-                'cover_letter_content': await self._generate_cover_letter_content(request)
+                'cover_letter_content': self._generate_cover_letter_content(request)
             }
             
             # Process matched projects
@@ -59,7 +58,7 @@ class CoverLetterGenerator:
             latex_content = template.render(**template_data)
             
             # Generate PDF
-            pdf_path = await self._compile_latex(latex_content, f"cover_letter_{request.job_description.company}")
+            pdf_path = self._compile_latex(latex_content, f"cover_letter_{request.job_description.company}")
             
             return pdf_path
             

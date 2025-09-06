@@ -5,7 +5,6 @@ from typing import List, Dict, Tuple
 from sentence_transformers import SentenceTransformer
 import faiss
 from app.models.project import Project, JobDescription, MatchedProject
-import aiofiles
 
 class EmbeddingService:
     def __init__(self):
@@ -26,7 +25,7 @@ class EmbeddingService:
         self.project_mapping = {}  # Maps FAISS index positions to project names
         self.embeddings_cache = {}
     
-    async def generate_embeddings_for_projects(self, projects: List[Project]):
+    def generate_embeddings_for_projects(self, projects: List[Project]):
         """
         Generate embeddings for all projects and store them
         """
@@ -66,18 +65,18 @@ class EmbeddingService:
         }
         
         # Save to disk
-        await self._save_embeddings()
+        self._save_embeddings()
         
         print(f"Successfully generated and saved embeddings for {len(projects)} projects")
     
-    async def find_matching_projects(self, job_description: JobDescription, top_k: int = 4) -> List[MatchedProject]:
+    def find_matching_projects(self, job_description: JobDescription, top_k: int = 4) -> List[MatchedProject]:
         """
         Find projects that best match a job description
         """
         try:
             # Load embeddings if not in memory
             if not self.index or not self.embeddings_cache:
-                await self._load_embeddings()
+                self._load_embeddings()
             
             if not self.index:
                 raise RuntimeError("No embeddings found. Please scrape GitHub repositories first.")
@@ -153,7 +152,7 @@ class EmbeddingService:
         except Exception:
             return "Relevant technical project demonstrating software development skills"
     
-    async def _save_embeddings(self):
+    def _save_embeddings(self):
         """
         Save embeddings and FAISS index to disk
         """
@@ -167,10 +166,9 @@ class EmbeddingService:
                 'project_mapping': self.project_mapping,
                 'model_name': self.model_name
             }
-            async with aiofiles.open(self.embeddings_file, 'wb') as f:
-                await f.write(pickle.dumps(save_data))
+            with open(self.embeddings_file, 'wb') as f:
+                f.write(pickle.dumps(save_data))
             
-            print("Embeddings and index saved successfully")
             print("Embeddings and index saved successfully")
             
         except Exception as e:
@@ -203,13 +201,13 @@ class EmbeddingService:
             self.embeddings_cache = {}
             self.project_mapping = {}
     
-    async def get_project_similarities(self, project_names: List[str]) -> Dict[str, Dict[str, float]]:
+    def get_project_similarities(self, project_names: List[str]) -> Dict[str, Dict[str, float]]:
         """
         Get similarity scores between projects (useful for analysis)
         """
         try:
             if not self.embeddings_cache:
-                await self._load_embeddings()
+                self._load_embeddings()
             
             similarities = {}
             embeddings = self.embeddings_cache['embeddings']
