@@ -3,7 +3,7 @@ import { ThemeProvider } from "@/components/theme-provider";
 import { Sidebar } from "@/components/sidebar";
 import { CVGenerator } from "@/components/cv-generator";
 import { JobAnalysis } from "@/components/job-analysis";
-import { ProjectManagement } from "@/components/project-management";
+import ProjectManagement from "@/components/project-management";
 import "./App.css";
 import { Toaster } from "sonner";
 

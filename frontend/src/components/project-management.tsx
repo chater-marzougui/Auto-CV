@@ -9,7 +9,14 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Github, Star, GitFork, RefreshCw, Activity } from "lucide-react";
+import {
+  Loader2,
+  Github,
+  Star,
+  GitFork,
+  RefreshCw,
+  Activity,
+} from "lucide-react";
 import { config } from "@/config";
 import { toast } from "sonner";
 import { ProgressCard } from "./progress-card";
@@ -30,7 +37,7 @@ interface Project {
   updated_at: string;
 }
 
-export function ProjectManagement() {
+export default function ProjectManagement() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [githubUsername, setGithubUsername] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -77,8 +84,9 @@ export function ProjectManagement() {
 
     setIsScraping(true);
     setShowProgress(true);
-    
+
     try {
+      // Start the scraping process
       const response = await fetch(
         `${config.api.baseUrl}${config.api.endpoints.scrapeGithub}`,
         {
@@ -96,17 +104,14 @@ export function ProjectManagement() {
       const result = await response.json();
       setCurrentClientId(result.client_id);
 
-      toast.success(`Successfully initiated scraping for ${result.projects_count} projects`);
-
-      // Auto-reload projects after a delay to ensure processing is complete
-      setTimeout(async () => {
-        await loadProjects();
-        setShowProgress(false);
-      }, 5000);
+      toast.success(`GitHub scraping initiated for ${githubUsername}`, {
+        description: "Check the progress panel for real-time updates",
+      });
 
     } catch (error) {
       toast.error("Failed to scrape GitHub repositories", {
-        description: error instanceof Error ? error.message : "Unknown error occurred",
+        description:
+          error instanceof Error ? error.message : "Unknown error occurred",
       });
       setShowProgress(false);
     } finally {
@@ -128,11 +133,12 @@ export function ProjectManagement() {
         const errorData = await response.json();
         throw new Error(errorData.detail || "Failed to refresh embeddings");
       }
-      
+
       toast.success("Embeddings refreshed successfully");
     } catch (error) {
       toast.error("Failed to refresh embeddings", {
-        description: error instanceof Error ? error.message : "Unknown error occurred",
+        description:
+          error instanceof Error ? error.message : "Unknown error occurred",
       });
     } finally {
       setIsRefreshing(false);
@@ -152,9 +158,9 @@ export function ProjectManagement() {
     );
   }
 
-  const websocketUrl = currentClientId ? 
-    `ws://localhost:5000/ws/${currentClientId}` : 
-    `ws://localhost:5000/ws/${Date.now()}`;
+  const websocketUrl = currentClientId
+    ? `ws://localhost:5000/ws/${currentClientId}`
+    : null;
 
   return (
     <div className="flex flex-col h-full">
@@ -169,16 +175,17 @@ export function ProjectManagement() {
               Manage your GitHub repositories and project embeddings
             </p>
           </div>
-          
+
           {/* Progress Toggle */}
           <Button
             variant="outline"
             size="sm"
             onClick={() => setShowProgress(!showProgress)}
             className="flex items-center gap-2"
+            disabled={!currentClientId}
           >
             <Activity className="h-4 w-4" />
-            {showProgress ? 'Hide Progress' : 'Show Progress'}
+            {showProgress ? "Hide Progress" : "Show Progress"}
           </Button>
         </div>
       </div>
@@ -190,7 +197,8 @@ export function ProjectManagement() {
           <CardHeader>
             <CardTitle>GitHub Integration</CardTitle>
             <CardDescription>
-              Scrape repositories from your GitHub profile and track progress in real-time
+              Scrape repositories from your GitHub profile and track progress in
+              real-time
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -209,7 +217,7 @@ export function ProjectManagement() {
                 {isScraping ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Scraping...
+                    Starting...
                   </>
                 ) : (
                   <>
@@ -223,7 +231,8 @@ export function ProjectManagement() {
             {isScraping && (
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <Loader2 className="h-4 w-4 animate-spin" />
-                Processing repositories... Check the progress card for details.
+                Initiating GitHub scraping... The progress panel will show
+                detailed updates.
               </div>
             )}
 
@@ -280,7 +289,8 @@ export function ProjectManagement() {
                 <Github className="h-12 w-12 text-muted-foreground mb-4" />
                 <h3 className="font-medium text-lg mb-2">No Projects Found</h3>
                 <p className="text-muted-foreground text-center mb-4">
-                  Enter your GitHub username above to scrape your repositories and see real-time progress
+                  Enter your GitHub username above to scrape your repositories
+                  and see real-time progress
                 </p>
               </CardContent>
             </Card>
@@ -385,11 +395,13 @@ export function ProjectManagement() {
       </div>
 
       {/* Progress Card - Fixed positioned overlay */}
-      <ProgressCard
-        isVisible={showProgress}
-        onClose={handleProgressClose}
-        websocketUrl={websocketUrl}
-      />
+      {websocketUrl && (
+        <ProgressCard
+          isVisible={showProgress}
+          onClose={handleProgressClose}
+          websocketUrl={websocketUrl}
+        />
+      )}
     </div>
   );
 }

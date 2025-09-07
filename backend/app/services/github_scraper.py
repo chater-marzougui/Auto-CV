@@ -1,6 +1,7 @@
 import json
 import os
 import re
+import asyncio
 from typing import List, Optional
 from github import Github
 from datetime import datetime
@@ -8,6 +9,8 @@ from app.models.project import Project
 from app.services.embeddings import EmbeddingService
 from app.services.gemini_service import GeminiService
 from github import Repository
+from concurrent.futures import ThreadPoolExecutor
+import functools
 
 class GitHubScraper:
     def __init__(self, github_token: Optional[str] = None, websocket_manager=None, client_id: str = None):
@@ -26,6 +29,9 @@ class GitHubScraper:
         self.projects_file = os.path.join(self.data_dir, "projects.json")
         self.websocket_manager = websocket_manager
         self.client_id = client_id
+        
+        # Thread pool for blocking operations
+        self.executor = ThreadPoolExecutor(max_workers=3)
         
         # Create data directory if it doesn't exist
         os.makedirs(self.data_dir, exist_ok=True)
@@ -49,6 +55,11 @@ class GitHubScraper:
             }
             await self.websocket_manager.send_progress(self.client_id, progress_data)
     
+    def _run_in_executor(self, func, *args):
+        """Run a synchronous function in a thread pool"""
+        loop = asyncio.get_event_loop()
+        return loop.run_in_executor(self.executor, func, *args)
+    
     async def scrape_and_process_repos(self, username: str) -> List[Project]:
         """
         Scrape all repositories from a GitHub user and process them
@@ -67,9 +78,12 @@ class GitHubScraper:
             )
         
         try:
-            user = self.github.get_user(username)
-            repos = list(user.get_repos(type='owner'))  # Convert to list to get count
-            owned_repos = [repo for repo in repos if not repo.fork]
+            # Run GitHub API calls in executor to avoid blocking
+            await self.send_progress("Fetching user repositories...", "fetching")
+            
+            user = await self._run_in_executor(self.github.get_user, username)
+            repos_list = await self._run_in_executor(lambda: list(user.get_repos(type='owner')))
+            owned_repos = [repo for repo in repos_list if not repo.fork]
             
             await self.send_progress(
                 f"Found {len(owned_repos)} repositories to process", 
@@ -78,14 +92,18 @@ class GitHubScraper:
             )
             
             projects = []
-            existing_projects = self.load_projects()
-            x = 0
-            for i, repo in enumerate(owned_repos, 1):
+            existing_projects = await self._run_in_executor(self.load_projects)
+            
+            # Limit for testing - remove this in production
+            test_limit = 3
+            repos_to_process = owned_repos[:test_limit]
+            
+            for i, repo in enumerate(repos_to_process, 1):
                 await self.send_progress(
                     f"Processing repository: {repo.name}", 
                     "processing",
                     current=i,
-                    total=len(owned_repos),
+                    total=len(repos_to_process),
                     repo_name=repo.name
                 )
                 
@@ -95,33 +113,35 @@ class GitHubScraper:
                         f"Repository {repo.name} is already up-to-date, skipping", 
                         "skipping",
                         current=i,
-                        total=len(owned_repos),
+                        total=len(repos_to_process),
                         repo_name=repo.name,
                         alert_type="info",
                         alert_message=f"{repo.name} already processed"
                     )
                     continue
 
-                project = await self._process_repository(repo, i, len(owned_repos))
+                project = await self._process_repository(repo, i, len(repos_to_process))
                 if project:
-                    x+=1
                     projects.append(project)
-                if x > 2:
-                    break  # Limit to 3 projects for testing
+                    
+                # Add a small delay between repositories to prevent overwhelming
+                await asyncio.sleep(0.5)
 
             # Save projects to JSON file
             await self.send_progress("Saving projects to database", "saving")
-            self._save_projects(projects)
+            await self._run_in_executor(self._save_projects, projects)
             
             # Generate embeddings for all projects
             await self.send_progress("Generating embeddings for semantic search", "embeddings")
-            self.embedding_service.generate_embeddings_for_projects(projects)
+            await self._run_in_executor(self.embedding_service.generate_embeddings_for_projects, projects)
 
             await self.send_progress(
                 f"Successfully processed {len(projects)} projects", 
                 "completed",
                 current=len(projects),
-                total=len(projects)
+                total=len(projects),
+                alert_type="success",
+                alert_message=f"✅ Completed processing {len(projects)} repositories"
             )
             return projects
             
@@ -148,7 +168,7 @@ class GitHubScraper:
                 repo_name=repo.name
             )
             
-            readme_content, success = self._get_readme_content(repo)
+            readme_content, success = await self._run_in_executor(self._get_readme_content, repo)
             
             if not success:
                 await self.send_progress(
@@ -187,7 +207,7 @@ class GitHubScraper:
                 total=total,
                 repo_name=repo.name
             )
-            tree = self._get_repo_trees(repo)
+            tree = await self._run_in_executor(self._get_repo_trees, repo)
             
             # Generate AI summaries
             await self.send_progress(
@@ -198,7 +218,11 @@ class GitHubScraper:
                 repo_name=repo.name
             )
             
-            gemini_response = self.gemini_service.generate_project_summary(repo.name, readme_content, tree)
+            gemini_response = await self._run_in_executor(
+                self.gemini_service.generate_project_summary, 
+                repo.name, readme_content, tree
+            )
+            
             three_liner = gemini_response.get("three_liner", "")
             detailed_paragraph = gemini_response.get("detailed", "")
             technologies = gemini_response.get("technologies", "")
@@ -216,15 +240,17 @@ class GitHubScraper:
                 )
             
             if not three_liner:
-                three_liner = self._generate_three_liner(repo, readme_content)
+                three_liner = await self._run_in_executor(self._generate_three_liner, repo, readme_content)
             if not detailed_paragraph:
-                detailed_paragraph = self._generate_detailed_paragraph(repo, readme_content, technologies)
+                detailed_paragraph = await self._run_in_executor(
+                    self._generate_detailed_paragraph, repo, readme_content, technologies
+                )
             if not technologies:
-                technologies = self._extract_technologies(repo, readme_content)
+                technologies = await self._run_in_executor(self._extract_technologies, repo, readme_content)
             
             await self.send_progress(
-                f"Creating embeddings for {repo.name}", 
-                "embedding",
+                f"Creating project entry for {repo.name}", 
+                "finalizing",
                 current=current,
                 total=total,
                 repo_name=repo.name
@@ -274,7 +300,7 @@ class GitHubScraper:
     
     def _get_readme_content(self, repo) -> tuple[str, bool]:
         """
-        Get README content from repository
+        Get README content from repository (synchronous - run in executor)
         """
         try:
             # Try all common README file naming conventions
@@ -297,7 +323,7 @@ class GitHubScraper:
     
     def _get_repo_trees(self, repo: Repository) -> List[str]:
         """
-        Recursively get all files in the repository
+        Recursively get all files in the repository (synchronous - run in executor)
         """
         try:
             # First, try to get the default branch name
@@ -428,7 +454,7 @@ class GitHubScraper:
     
     def _save_projects(self, projects: List[Project]):
         """
-        Save projects to JSON file
+        Save projects to JSON file (synchronous - run in executor)
         """
         try:
             # Convert projects to dict format for JSON serialization
@@ -453,7 +479,7 @@ class GitHubScraper:
     
     def load_projects(self) -> List[Project]:
         """
-        Load projects from JSON file
+        Load projects from JSON file (synchronous - run in executor)
         """
         try:
             if not os.path.exists(self.projects_file):
@@ -475,3 +501,8 @@ class GitHubScraper:
         except Exception as e:
             print(f"Error loading projects: {str(e)}")
             return []
+    
+    def cleanup(self):
+        """Clean up resources"""
+        if hasattr(self, 'executor'):
+            self.executor.shutdown(wait=False)
