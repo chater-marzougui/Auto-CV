@@ -346,7 +346,7 @@ class GitHubScraper:
             # Try all common README file naming conventions
             readme_files = [
                 'README.md', 'README.MD', 'readme.md', 'Readme.md',
-                'README', 'ReadMe', 'readme'
+                'README', 'ReadMe', 'readme', 'readme.MD', 'ReadMe.MD'
             ]
             
             for readme_file in readme_files:
@@ -578,8 +578,8 @@ class GitHubScraper:
             repo = await self._run_in_executor(user.get_repo, repo_name)
             
             # Process the single repository
-            project = await self._run_in_executor(self._process_repository, repo)
-            
+            project = await self._process_repository(repo, 1, 1)
+
             if project:
                 # Load existing projects
                 existing_projects = self.load_projects()
@@ -602,12 +602,12 @@ class GitHubScraper:
                 embedding_service = EmbeddingService()
                 embedding_service.generate_embeddings_for_projects(existing_projects)
                 
-                log_success(self.logger, f"Successfully updated project {repo_name}", repo=repo_name)
+                log_success(self.logger, f"Successfully updated project {repo_name}", repo_name)
             else:
-                log_error(self.logger, f"Failed to process project {repo_name}", repo=repo_name)
+                log_error(self.logger, f"Failed to process project {repo_name}", repo_name)
                 
         except Exception as e:
-            log_error(self.logger, f"Error updating single project {repo_name}: {e}", repo=repo_name, exc_info=True)
+            log_error(self.logger, f"Error updating single project {repo_name}: {e}", repo_name, exc_info=True)
             raise e
     
     def cleanup(self):
