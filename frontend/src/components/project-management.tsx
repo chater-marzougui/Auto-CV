@@ -16,7 +16,6 @@ import {
   GitFork,
   RefreshCw,
   Activity,
-  XCircle,
   AlertTriangle
 } from "lucide-react";
 import { config } from "@/config";
