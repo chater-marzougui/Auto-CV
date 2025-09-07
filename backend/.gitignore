@@ -56,3 +56,5 @@ migrations/
 
 # Data files
 data/
+*.pdf
+*.tex

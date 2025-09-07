@@ -74,6 +74,7 @@ class GeminiService:
         """
         Parse job description to extract title, company, description, and requirements
         """
+        print("Parsing job description with Gemini...")
         prompt = f"""You will be given a job description text.
     Extract the following fields and return them in a JSON format:
     - title: Job title
@@ -102,6 +103,58 @@ class GeminiService:
         json_response = self._extract_json(response.text)
 
         return json_response
+
+    def generate_cover_letter(self, template_text: str, job_description: str, projects: list) -> tuple[str, str]:
+        """
+        Generate cover letter content using template, job description, and relevant projects
+        """
+        # Prepare project information
+        project_info = ""
+        for i, matched_project in enumerate(projects, 1):
+            project = matched_project.project
+            project_info += f"""
+            Project {i}: {project.name}
+            - Description: {project.detailed_paragraph}
+            - three liner: {project.three_liner}
+            - Technologies: {', '.join(project.technologies)}
+            """
+        
+        prompt = f"""You are a professional cover letter writer. Use the provided template to create a personalized cover letter for the given job description.
+
+    TEMPLATE TO FOLLOW (adapt the structure, tone and style):
+    {template_text}
+
+    JOB INFORMATION:
+    {job_description}
+
+
+    RELEVANT PROJECTS (if relevant to the job, incorporate 1-2 max naturally):
+    {project_info}
+
+    INSTRUCTIONS:
+    1. Follow the structure and tone of the provided template
+    2. Adapt the content to match the specific job requirements
+    3. If the provided projects are relevant to the job requirements, mention them naturally in the experience section
+    4. Only include projects that are actually relevant - don't force irrelevant projects into the letter
+    5. Keep the same professional tone as the template
+    6. Make sure the letter flows naturally and doesn't sound templated
+    7. Focus on how the candidate's experience matches the job requirements
+    8. Keep it concise and impactful (2-3 paragraphs)
+    9. Don't include placeholder text like [Your Name] or [Company Name] - use actual values
+    10. Return only the body paragraphs of the cover letter, without salutation or closing
+    
+    return a json with two keys and no other text just the json:
+    {{
+        "company_name": "the company name extracted from the job description no spaces or special characters",
+        "cover_letter": "the full text of the cover letter following the template structure and tone"
+    }}
+"""
+
+        response = self.precise_model.generate_content([prompt])
+        json_response = self._extract_json(response.text)
+        response_text = json_response.get("cover_letter", "")
+        comp = json_response.get("company_name", "")
+        return response_text, comp
 
     def _extract_json(self, text: str) -> dict:
         """

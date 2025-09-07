@@ -17,9 +17,6 @@ def generate_cv(request: CVGenerationRequest):
     try:
         cv_generator = CVGenerator()
         
-        # Ensure default template exists
-        cv_generator.create_default_cv_template()
-        
         # Generate CV
         pdf_path = cv_generator.generate_cv(request)
         
@@ -39,9 +36,6 @@ def generate_cover_letter(request: CoverLetterRequest):
     """
     try:
         letter_generator = CoverLetterGenerator()
-        
-        # Ensure default template exists
-        letter_generator.create_default_cover_letter_template()
         
         # Generate cover letter
         pdf_path = letter_generator.generate_cover_letter(request)
@@ -83,8 +77,8 @@ def generate_full_application(request: GenerateFullApplicationRequest):
         )
         
         cv_generator = CVGenerator()
-        cv_generator.create_default_cv_template()
         cv_path = cv_generator.generate_cv(cv_request)
+        print("CV generated at:", cv_path)
         
         # Step 3: Generate Cover Letter
         letter_request = CoverLetterRequest(
@@ -94,9 +88,9 @@ def generate_full_application(request: GenerateFullApplicationRequest):
         )
         
         letter_generator = CoverLetterGenerator()
-        letter_generator.create_default_cover_letter_template()
+        print("Before ")
         letter_path = letter_generator.generate_cover_letter(letter_request)
-        
+        print("Cover letter generated at:", letter_path)
         return {
             "message": "Full application generated successfully",
             "cv": {

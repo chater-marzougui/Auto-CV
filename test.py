@@ -255,13 +255,14 @@ def main():
         time.sleep(3)
     
     print()
-    """
     # Test 3: List projects
     list_projects()
     print()
+    
     # Test 4: Analyze job
     analyze_job_description()
     print()
+    """
     
     # Test 5: Match projects
     matched_projects = match_projects_to_job()

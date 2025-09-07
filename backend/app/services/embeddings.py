@@ -177,14 +177,14 @@ class EmbeddingService:
             embeddings = self.embeddings_cache['embeddings']
             project_names_list = self.embeddings_cache['project_names']
             
-            for i, name1 in enumerate(project_names):
+            for i, name1 in enumerate(project_names_list):
                 if name1 not in project_names_list:
                     continue
                     
                 similarities[name1] = {}
                 idx1 = project_names_list.index(name1)
                 
-                for j, name2 in enumerate(project_names):
+                for j, name2 in enumerate(project_names_list):
                     if name2 not in project_names_list:
                         continue
                         

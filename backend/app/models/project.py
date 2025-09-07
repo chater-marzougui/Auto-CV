@@ -35,7 +35,7 @@ class CVGenerationRequest(BaseModel):
     template_path: Optional[str] = None
     
 class CoverLetterRequest(BaseModel):
-    job_description: JobDescription
+    job_description: str
     matched_projects: List[MatchedProject]
     personal_info: dict
     template_path: Optional[str] = None

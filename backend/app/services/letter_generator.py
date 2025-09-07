@@ -2,150 +2,98 @@ import os
 import tempfile
 import subprocess
 import shutil
+import PyPDF2
 from typing import List, Dict, Any
-from jinja2 import Template, Environment, FileSystemLoader
-from app.models.project import MatchedProject, CoverLetterRequest, JobDescription
+from app.models.project import CoverLetterRequest
+from app.services.gemini_service import GeminiService
 
 class CoverLetterGenerator:
     def __init__(self):
-        self.templates_dir = "templates"
         self.temp_dir = tempfile.mkdtemp()
         self.output_dir = "output"
+        self.templates_dir = "templates"
         
         # Create directories if they don't exist
-        os.makedirs(self.templates_dir, exist_ok=True)
         os.makedirs(self.output_dir, exist_ok=True)
+        os.makedirs(self.templates_dir, exist_ok=True)
         
-        # Initialize Jinja2 environment
-        self.jinja_env = Environment(loader=FileSystemLoader(self.templates_dir))
+        # Initialize Gemini service
+        self.gemini_service = GeminiService()
     
     def generate_cover_letter(self, request: CoverLetterRequest) -> str:
         """
-        Generate cover letter PDF from template
+        Generate cover letter PDF using Gemini AI
         """
         try:
-            template_path = request.template_path or "cover_letter_template.tex"
+            # Extract text from template PDF
+            template_path = request.template_path or os.path.join(self.templates_dir, "cover_letter_template.pdf")
+            template_text = self._extract_text_from_pdf(template_path)
+            # Generate cover letter content using Gemini
+            cover_letter_content, company = self.gemini_service.generate_cover_letter(
+                template_text=template_text,
+                job_description=request.job_description,
+                projects=request.matched_projects,
+            )
             
-            # Prepare template data
-            template_data = {
-                'personal_info': request.personal_info,
-                'job': {
-                    'title': request.job_description.title,
-                    'company': request.job_description.company,
-                    'description': request.job_description.description,
-                    'requirements': request.job_description.requirements
-                },
-                'projects': [],
-                'relevant_skills': self._extract_relevant_skills(request),
-                'cover_letter_content': self._generate_cover_letter_content(request)
-            }
-            
-            # Process matched projects
-            for matched_project in request.matched_projects[:3]:  # Use top 3 projects for cover letter
-                project = matched_project.project
-                project_data = {
-                    'name': project.name,
-                    'url': project.url,
-                    'description': project.three_liner.split('\n')[0].replace('•', '').strip(),
-                    'technologies': project.technologies[:5],  # Limit to top 5 technologies
-                    'similarity_score': matched_project.similarity_score
-                }
-                template_data['projects'].append(project_data)
-            
-            # Load and render template
-            template = self.jinja_env.get_template(template_path)
-            latex_content = template.render(**template_data)
+            # Create LaTeX content with the generated text
+            latex_content = self._create_latex_document(cover_letter_content)
             
             # Generate PDF
-            pdf_path = self._compile_latex(latex_content, f"cover_letter_{request.job_description.company}")
-            
+            pdf_path = self._compile_latex(latex_content, f"cover_letter_{company}")
+            return pdf_path
+
+        except Exception as e:
+            raise RuntimeError(f"Error generating cover letter: {str(e)}")
+
+    def _extract_text_from_pdf(self, pdf_path: str) -> str:
+        """
+        Extract text content from PDF template
+        """
+        try:
             return pdf_path
             
         except Exception as e:
             raise RuntimeError(f"Error generating cover letter: {str(e)}")
 
-    def _generate_cover_letter_content(self, request: CoverLetterRequest) -> Dict[str, str]:
+    def _extract_text_from_pdf(self, pdf_path: str) -> str:
         """
-        Generate the main content paragraphs for the cover letter
+        Extract text content from PDF template
         """
-        job = request.job_description
-        projects = request.matched_projects[:3]
+        try:
+            if not os.path.exists(pdf_path):
+                raise FileNotFoundError(f"Template PDF not found: {pdf_path}")
+            
+            with open(pdf_path, 'rb') as file:
+                pdf_reader = PyPDF2.PdfReader(file)
+                text = ""
+                for page in pdf_reader.pages:
+                    text += page.extract_text() + "\n"
+            
+            return text.strip()
         
-        # Introduction paragraph
-        introduction = f"I am writing to express my strong interest in the {job.title} position at {job.company}. "
-        introduction += "With my demonstrated experience in software development and a portfolio of relevant projects, "
-        introduction += "I am confident that I would be a valuable addition to your team."
-        
-        # Experience paragraph (based on projects)
-        experience = "My technical expertise is demonstrated through several key projects: "
-        project_descriptions = []
-        
-        for matched_project in projects:
-            project = matched_project.project
-            project_desc = f"{project.name}, which showcases my proficiency in {', '.join(project.technologies[:3])}"
-            if project.stars > 5:
-                project_desc += f" and has gained recognition with {project.stars} GitHub stars"
-            project_descriptions.append(project_desc)
-        
-        if project_descriptions:
-            experience += "; ".join(project_descriptions[:2]) + ". "
-        
-        experience += "These projects demonstrate my ability to deliver practical solutions and work with modern development practices."
-        
-        # Skills alignment paragraph
-        alignment = f"I am particularly drawn to this role at {job.company} because it aligns perfectly with my technical background. "
-        
-        # Extract common technologies between job and projects
-        job_text = f"{job.description} {job.requirements or ''}".lower()
-        common_techs = set()
-        
-        for matched_project in projects:
-            for tech in matched_project.project.technologies:
-                if tech.lower() in job_text:
-                    common_techs.add(tech)
-        
-        if common_techs:
-            alignment += f"My experience with {', '.join(list(common_techs)[:4])} directly addresses your technical requirements. "
-        
-        alignment += "I am excited about the opportunity to contribute to your team's success and grow within your organization."
-        
-        # Closing paragraph
-        closing = f"I would welcome the opportunity to discuss how my technical skills and project experience can contribute to {job.company}'s continued success. "
-        closing += "Thank you for considering my application. I look forward to hearing from you soon."
-        
-        return {
-            'introduction': introduction,
-            'experience': experience,
-            'alignment': alignment,
-            'closing': closing
-        }
+        except Exception as e:
+            raise RuntimeError(f"Error extracting text from PDF: {str(e)}")
     
-    def _extract_relevant_skills(self, request: CoverLetterRequest) -> List[str]:
+    def _create_latex_document(self, content: str) -> str:
         """
-        Extract skills that are relevant to the job from the matched projects
+        Create LaTeX document with generated content
         """
-        job_text = f"{request.job_description.description} {request.job_description.requirements or ''}".lower()
-        
-        all_skills = set()
-        for matched_project in request.matched_projects:
-            all_skills.update(matched_project.project.technologies)
-        
-        # Filter skills that appear in job description
-        relevant_skills = []
-        for skill in all_skills:
-            if skill.lower() in job_text:
-                relevant_skills.append(skill)
-        
-        # Add some common professional skills
-        soft_skills = []
-        if 'team' in job_text or 'collaborative' in job_text:
-            soft_skills.append('Team Collaboration')
-        if 'problem' in job_text:
-            soft_skills.append('Problem Solving')
-        if 'communication' in job_text:
-            soft_skills.append('Communication')
-        
-        return relevant_skills[:8] + soft_skills[:2]  # Limit to avoid overcrowding
+        latex_template = r"""
+\documentclass[11pt,a4paper]{letter}
+\usepackage[utf8]{inputenc}
+\usepackage[margin=1in]{geometry}
+\usepackage{parskip}
+
+\begin{document}
+
+\begin{letter}{}
+
+""" + content + r"""
+
+\end{letter}
+\end{document}
+"""
+        return latex_template
     
     def _compile_latex(self, latex_content: str, filename_prefix: str) -> str:
         """
@@ -185,104 +133,12 @@ class CoverLetterGenerator:
                 
         except Exception as e:
             raise RuntimeError(f"LaTeX compilation error: {str(e)}")
-
-    def _escape_latex(self, text: str) -> str:
-        """
-        Escape special LaTeX characters
-        """
-        latex_special_chars = {
-            '&': r'\&',
-            '%': r'\%',
-            '$': r'\$',
-            '#': r'\#',
-            '^': r'\textasciicircum{}',
-            '_': r'\_',
-            '~': r'\textasciitilde{}',
-            '{': r'\{',
-            '}': r'\}',
-            '\\': r'\textbackslash{}'
-        }
-        
-        for char, escape in latex_special_chars.items():
-            text = text.replace(char, escape)
-        
-        return text
     
-    def create_default_cover_letter_template(self):
+    def __del__(self):
         """
-        Create a default cover letter template if none exists
+        Cleanup temporary directory
         """
-        template_path = os.path.join(self.templates_dir, "cover_letter_template.tex")
-        
-        if os.path.exists(template_path):
-            return template_path
-        
-        default_template = r"""
-\documentclass[11pt,a4paper]{letter}
-
-% Packages
-\usepackage[utf8]{inputenc}
-\usepackage[scale=0.75]{geometry}
-\usepackage{url}
-
-% Letter formatting
-\longindentation=0pt
-
-% Personal information
-\name{{ personal_info.first_name }} {{ personal_info.last_name }}
-\address{{ personal_info.address }}\\{{ personal_info.city }}, {{ personal_info.postal_code }}}
-\telephone{{ personal_info.phone }}
-
-\begin{document}
-
-% Date and recipient address
-\begin{letter}{%
-Hiring Manager\\
-{{ job.company }}\\
-{% if job.address %}{{ job.address }}{% else %}[Company Address]{% endif %}
-}
-
-% Opening
-\opening{Dear Hiring Manager,}
-
-% Introduction
-{{ cover_letter_content.introduction }}
-
-% Experience paragraph
-{{ cover_letter_content.experience }}
-
-% Project highlights
-{% if projects %}
-Specifically, I would like to highlight the following relevant projects:
-\begin{itemize}
-{% for project in projects %}
-    \item \textbf{{ project.name }}: {{ project.description }} ({{ project.technologies|join(', ') }})
-{% endfor %}
-\end{itemize}
-{% endif %}
-
-% Skills alignment
-{{ cover_letter_content.alignment }}
-
-% Relevant skills
-{% if relevant_skills %}
-My technical skill set includes: {{ relevant_skills|join(', ') }}.
-{% endif %}
-
-% Closing paragraph
-{{ cover_letter_content.closing }}
-
-% Sign off
-\closing{Sincerely,}
-
-% Optional: Enclosures
-\encl{Resume}
-
-\end{letter}
-\end{document}
-"""
-        
-        with open(template_path, 'w', encoding='utf-8') as f:
-            f.write(default_template)
-        
-        return template_path
+        try:
+            shutil.rmtree(self.temp_dir, ignore_errors=True)
+        except:
+            pass
