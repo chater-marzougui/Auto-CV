@@ -1,69 +1,75 @@
-# React + TypeScript + Vite
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+# Auto-CV Frontend
 
-Currently, two official plugins are available:
+This is the frontend for **Auto-CV**, an AI-powered CV and cover letter generator. It provides a modern web interface for generating tailored job applications based on your GitHub projects and job descriptions.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+## 🚀 Features
 
-## Expanding the ESLint configuration
+- **React + TypeScript + Vite**: Fast, modern frontend stack
+- **Tailwind CSS**: Utility-first styling
+- **Radix UI**: Accessible UI components
+- **Live Progress**: Real-time updates via WebSocket
+- **Project Matching**: View matched projects based on semantic similarity
+- **Document Generation**: Generate professional CVs and cover letters
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+## ⚡ Getting Started
 
-```js
-export default tseslint.config([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+### Prerequisites
 
-      // Remove tseslint.configs.recommended and replace with this
-      ...tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      ...tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      ...tseslint.configs.stylisticTypeChecked,
+- Node.js 16+
+- Backend API running (see main project README)
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+### Installation
+
+1. Install dependencies:
+  ```bash
+  npm install
+  ```
+2. Start the development server:
+  ```bash
+  npm run dev
+  ```
+3. The app will be available at [http://localhost:5173](http://localhost:5173)
+
+## 📝 Usage
+
+1. Enter your GitHub username to analyze your repositories
+2. Paste a job description to match relevant projects
+3. Generate CV and cover letter with one click
+
+## 🛠️ Project Structure
+
+```
+frontend/
+├── src/
+│   ├── components/      # React components
+│   ├── hooks/           # Custom hooks
+│   ├── lib/             # Utility functions
+│   ├── config/          # App configuration
+│   └── assets/          # Static assets
+├── app/                 # Global styles
+├── public/              # Public files
+├── index.html           # Main HTML file
+├── package.json         # Project config
+└── README.md            # This file
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+## 🧩 Technologies
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+- [React](https://react.dev/)
+- [TypeScript](https://www.typescriptlang.org/)
+- [Vite](https://vitejs.dev/)
+- [Tailwind CSS](https://tailwindcss.com/)
+- [Radix UI](https://www.radix-ui.com/)
 
-export default tseslint.config([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+## 🤝 Contributing
+
+Contributions are welcome! Please open issues or pull requests in the main [Auto-CV repository](https://github.com/chater-marzougui/Auto-CV).
+
+## 📃 License
+
+Distributed under the MIT License. See `LICENSE` for details.
+
+---
+
+**Revolutionize your job applications with AI-powered CV generation.**
