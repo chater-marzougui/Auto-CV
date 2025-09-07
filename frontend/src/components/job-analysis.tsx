@@ -38,6 +38,26 @@ interface MatchedProject {
   similarity_score: number;
 }
 
+interface GenerateApplicationRequest {
+  job_description: string;
+  personal_info: {
+    first_name: string;
+    last_name: string;
+    email: string;
+    phone: string;
+    address: string;
+    city: string;
+    postal_code: string;
+    title: string;
+    summary: string;
+    skills: Record<string, string[]>;
+    experience: unknown[];
+    education: unknown[];
+  };
+  selected_projects?: MatchedProject[];
+  top_k?: number;
+}
+
 export function JobAnalysis() {
   const [jobDescription, setJobDescription] = useState("");
   const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -91,7 +111,7 @@ export function JobAnalysis() {
 
       setAnalysisResult({
         ...analysis,
-        matched_projects: matchedProjectsData.map((mp: any) => ({
+        matched_projects: matchedProjectsData.map((mp: MatchedProject) => ({
           name: mp.project.name,
           similarity_score: mp.similarity_score,
         })),
@@ -129,7 +149,7 @@ export function JobAnalysis() {
 
     setIsGenerating(true);
     try {
-      const requestBody: any = {
+      const requestBody: GenerateApplicationRequest = {
         job_description: jobDescription,
         personal_info: {
           first_name: "John",
