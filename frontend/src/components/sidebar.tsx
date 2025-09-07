@@ -1,14 +1,14 @@
-import { cn } from "@/lib/utils"
-import { Button } from "@/components/ui/button"
-import { FileText, GitBranch, Briefcase, Github } from "lucide-react"
-import { ThemeToggle } from "@/components/theme-toggle"
+import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import { FileText, GitBranch, Briefcase, Github } from "lucide-react";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 interface SidebarProps {
-  activeTab: string
-  onTabChange: (tab: "job-analysis" | "projects" | "cv-generator") => void
+  activeTab: string;
+  onTabChange: (tab: "job-analysis" | "projects" | "cv-generator") => void;
 }
 
-export function Sidebar({ activeTab, onTabChange }: SidebarProps) {
+export function Sidebar({ activeTab, onTabChange }: Readonly<SidebarProps>) {
   const menuItems = [
     {
       id: "job-analysis" as const,
@@ -28,7 +28,7 @@ export function Sidebar({ activeTab, onTabChange }: SidebarProps) {
       icon: FileText,
       description: "Generate CV & cover letter",
     },
-  ]
+  ];
 
   return (
     <div className="w-64 bg-sidebar border-r border-sidebar-border flex flex-col">
@@ -38,18 +38,21 @@ export function Sidebar({ activeTab, onTabChange }: SidebarProps) {
           <div className="flex items-center gap-2">
             <Github className="h-8 w-8 text-sidebar-primary" />
             <div>
-              <h1 className="font-heading font-bold text-lg text-sidebar-foreground">Auto-CV</h1>
-              <p className="text-sm text-sidebar-foreground/60">AI-powered CV generator</p>
+              <h2 className="font-heading font-bold text-3xl text-sidebar-foreground">
+                Auto-CV
+              </h2>
+              <p className="text-sm text-sidebar-foreground/60">
+                AI-powered CV generator
+              </p>
             </div>
           </div>
-          <ThemeToggle />
         </div>
       </div>
 
       {/* Navigation */}
       <nav className="flex-1 p-4 space-y-2">
         {menuItems.map((item) => {
-          const Icon = item.icon
+          const Icon = item.icon;
           return (
             <Button
               key={item.id}
@@ -58,7 +61,7 @@ export function Sidebar({ activeTab, onTabChange }: SidebarProps) {
                 "w-full justify-start gap-3 h-auto p-3",
                 activeTab === item.id
                   ? "bg-sidebar-primary text-sidebar-primary-foreground"
-                  : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
+                  : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
               )}
               onClick={() => onTabChange(item.id)}
             >
@@ -68,14 +71,14 @@ export function Sidebar({ activeTab, onTabChange }: SidebarProps) {
                 <div className="text-xs opacity-70">{item.description}</div>
               </div>
             </Button>
-          )
+          );
         })}
       </nav>
 
       {/* Footer */}
       <div className="p-4 border-t border-sidebar-border">
-        <p className="text-xs text-sidebar-foreground/60 text-center">Built with AI & GitHub API</p>
+        <ThemeToggle />
       </div>
     </div>
-  )
+  );
 }

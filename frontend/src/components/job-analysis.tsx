@@ -81,7 +81,7 @@ export function JobAnalysis() {
     } catch (error) {
       toast({
         title: "Error",
-        description: "Failed to analyze job description",
+        description: "Failed to analyze job description" + (error instanceof Error ? `: ${error.message}` : ""),
         variant: "destructive",
       })
     } finally {
@@ -141,7 +141,7 @@ export function JobAnalysis() {
     } catch (error) {
       toast({
         title: "Error",
-        description: "Failed to generate application",
+        description: "Failed to generate application" + (error instanceof Error ? `: ${error.message}` : ""),
         variant: "destructive",
       })
     } finally {

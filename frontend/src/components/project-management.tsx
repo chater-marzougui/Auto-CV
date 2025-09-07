@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
-import { Loader2, Github, Star, GitFork, RefreshCw, AlertCircle } from "lucide-react"
+import { Loader2, Github, Star, GitFork, RefreshCw } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { config } from "@/config"
 
@@ -80,7 +80,7 @@ export function ProjectManagement() {
     } catch (error) {
       toast({
         title: "Error",
-        description: "Failed to scrape GitHub repositories",
+        description: "Failed to scrape GitHub repositories" + (error instanceof Error ? `: ${error.message}` : ""),
         variant: "destructive",
       })
     } finally {
@@ -104,7 +104,7 @@ export function ProjectManagement() {
     } catch (error) {
       toast({
         title: "Error",
-        description: "Failed to refresh embeddings",
+        description: "Failed to refresh embeddings" + (error instanceof Error ? `: ${error.message}` : ""),
         variant: "destructive",
       })
     } finally {
@@ -112,7 +112,13 @@ export function ProjectManagement() {
     }
   }
 
-  const projectsWithoutReadme = projects.filter((p) => !p.description || p.description.trim() === "")
+  if (isLoading && projects.length === 0) {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
+    )
+  }
 
   return (
     <div className="flex flex-col h-full">
@@ -182,40 +188,13 @@ export function ProjectManagement() {
           </CardContent>
         </Card>
 
-        {/* Projects without README warning */}
-        {projectsWithoutReadme.length > 0 && (
-          <Card className="border-destructive/50 bg-destructive/5">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-destructive">
-                <AlertCircle className="h-5 w-5" />
-                Projects Missing README
-              </CardTitle>
-              <CardDescription>These projects don't have descriptions and may not be properly indexed</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-2">
-                {projectsWithoutReadme.map((project, index) => (
-                  <div key={index} className="flex items-center justify-between p-2 bg-background rounded border">
-                    <span className="font-medium">{project.name}</span>
-                    <Badge variant="destructive">No README</Badge>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
         {/* Projects Grid */}
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <h2 className="font-heading text-xl font-semibold">Your Projects ({projects.length})</h2>
           </div>
 
-          {isLoading ? (
-            <div className="flex items-center justify-center py-12">
-              <Loader2 className="h-8 w-8 animate-spin" />
-            </div>
-          ) : projects.length === 0 ? (
+          {projects.length === 0 ? (
             <Card>
               <CardContent className="flex flex-col items-center justify-center py-12">
                 <Github className="h-12 w-12 text-muted-foreground mb-4" />
