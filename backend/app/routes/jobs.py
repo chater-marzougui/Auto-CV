@@ -1,31 +1,45 @@
 from fastapi import APIRouter, HTTPException
 from typing import List
+from pydantic import BaseModel
 from app.models.project import JobDescription, MatchedProject
 from app.services.embeddings import EmbeddingService
 from app.services.github_scraper import GitHubScraper
 from app.services.gemini_service import GeminiService
 
 router = APIRouter()
+class JobDescriptionInput(BaseModel):
+    job_description: dict | str
+
 
 @router.post("/match-projects", response_model=List[MatchedProject])
-def match_projects_to_job(job_description: str, top_k: int = 4):
+def match_projects_to_job(job_description: JobDescriptionInput, top_k: int = 4):
     """
     Match projects to a job description and return the most relevant ones
     """
     try:
         embedding_service = EmbeddingService()
-        matched_projects = embedding_service.find_matching_projects(job_description, top_k)
+        jd = job_description.job_description
+
+        # If it's a dict (structured JD), merge values into one string
+        if isinstance(jd, dict):
+            jd_text = ", ".join(str(v) for v in jd.values() if v)
+        else:
+            jd_text = str(jd)
+
+        print(f"Finding top {top_k} matching projects for the job description: {jd_text[:50]}...")
+        matched_projects = embedding_service.find_matching_projects(jd_text, top_k)
         
         if not matched_projects:
             raise HTTPException(
-                status_code=404, 
+                status_code=404,
                 detail="No matching projects found. Please scrape GitHub repositories first."
             )
         
         return matched_projects
-        
+
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error matching projects: {str(e)}")
+
 
 @router.get("/projects")
 def get_all_projects():

@@ -1,81 +1,248 @@
+\documentclass[10pt,a4paper]{article}
+\usepackage{enumitem} % Add this in the preamble
 
-\documentclass[11pt,a4paper]{moderncv}
-
-% ModernCV themes
-\moderncvstyle{classic}
-\moderncvcolor{blue}
-
-% Character encoding
 \usepackage[utf8]{inputenc}
+\usepackage{xifthen}
+\usepackage{hyperref}
+\usepackage{xcolor}
+\usepackage{fontawesome}
+\usepackage[default]{raleway}
+\renewcommand*\familydefault{\sfdefault}
+\usepackage[T1]{fontenc}
+\usepackage{moresize}
+\usepackage[a4paper]{geometry}
+\geometry{top=1.25cm, bottom=-.6cm, left=1.5cm, right=1.5cm}
+\usepackage{fancyhdr}
+\pagestyle{fancy}
+\setlength{\headheight}{-5pt}
+\setlength{\parindent}{0mm}
+\usepackage{multicol}
+\usepackage{multirow}
+\usepackage{array}
+\newcolumntype{x}[1]{%
+>{\raggedleft\hspace{0pt}}p{#1}}%
+\usepackage{graphicx}
+\usepackage{wrapfig}
+\usepackage{float}
+\usepackage{tikz}
+\usetikzlibrary{shapes, backgrounds,mindmap, trees}
+\usepackage{color}
 
-% Page margins
-\usepackage[scale=0.75]{geometry}
+\definecolor{sectcol}{RGB}{0,150,255}
+\definecolor{bgcol}{RGB}{110,110,110}
+\definecolor{softcol}{RGB}{155,155,155}
 
-% Personal data
-\name{{ personal_info.first_name }}{{ personal_info.last_name }}
-\title{{ personal_info.title }}
-\address{{ personal_info.address }}{{ personal_info.city }}{{ personal_info.postal_code }}
-\phone[mobile]{{ personal_info.phone }}
-\email{{ personal_info.email }}
-{% if personal_info.linkedin %}\social[linkedin]{{ personal_info.linkedin }}{% endif %}
-{% if personal_info.github %}\social[github]{{ personal_info.github }}{% endif %}
+\renewcommand{\headrulewidth}{0pt}
+\renewcommand{\footrulewidth}{0pt}
+\renewcommand{\thepage}{}
+\renewcommand{\thesection}{}
+
+\newcommand{\tzlarrow}{(0,0) -- (0.2,0) -- (0.3,0.2) -- (0.2,0.4) -- (0,0.4) -- (0.1,0.2) -- cycle;}
+\newcommand{\larrow}[1]
+{\begin{tikzpicture}[scale=0.58]
+	 \filldraw[fill=#1!100,draw=#1!100!black]  \tzlarrow
+\end{tikzpicture}
+}
+
+\newcommand{\tzrarrow}{ (0,0.2) -- (0.1,0) -- (0.3,0) -- (0.2,0.2) -- (0.3,0.4) -- (0.1,0.4) -- cycle;}
+\newcommand{\rarrow}
+{\begin{tikzpicture}[scale=0.7]
+	\filldraw[fill=sectcol!100,draw=sectcol!100!black] \tzrarrow
+\end{tikzpicture}
+}
+
+\newcommand{\cvsection}[1]{%
+  \vspace{1em}%
+  {\centering\textcolor{sectcol}{\textbf{#1}}\par}%
+  \vspace{0.2em}%
+}
+
+
+\newcommand{\metasection}[2]
+{
+\footnotesize{#2} \hspace*{\fill} \footnotesize{#1}\\[1pt]
+}
+
+\newcommand{\cvevent}[5]
+{
+\begin{tabular*}{1\textwidth}{p{13.6cm}  x{3.9cm}}
+	\textbf{#2} - \textcolor{bgcol}{#3} &   \vspace{2.5pt}\textcolor{bgcol}{#1}
+\end{tabular*}
+\vspace{-8pt}
+\textcolor{softcol}{\hrule}
+\vspace{2pt}
+  $\cdot$ #4\\[2.5pt]
+  $\cdot$ #5\\[2.5pt]
+}
+
+\newcommand{\cveventh}[2]
+{
+\begin{tabular*}{1\textwidth}{p{13.6cm}  x{3.9cm}}
+	\textbf{#1}
+\end{tabular*}
+\vspace{-8pt}
+\textcolor{softcol}{\hrule}
+\vspace{2pt}
+    #2
+}
+
+\newcommand{\cveventt}[5]
+{
+\begin{tabular*}{1\textwidth}{p{13.6cm}  x{3.9cm}}
+	\textbf{#2} - \textcolor{bgcol}{#3} &   \vspace{2.5pt}\textcolor{bgcol}{#1}
+\end{tabular*}
+\vspace{-8pt}
+\textcolor{softcol}{\hrule}
+\vspace{2pt}
+    #4
+}
+\newcommand{\cveventtt}[5]
+{
+\begin{tabular*}{1\textwidth}{p{13.6cm}  x{3.9cm}}
+	\textbf{#2} - \textcolor{bgcol}{#3} &   \vspace{2.5pt}\textcolor{bgcol}{#1}
+\end{tabular*}
+\vspace{-8pt}
+\textcolor{softcol}{\hrule}
+\vspace{2pt}
+    #4\\[-1pt]
+}
+
+\newcommand{\cveventmeta}[2]
+{
+	\mbox{\mystrut \hspace{87pt}\textit{#1}}\\
+	#2
+}
+
+\newcommand{\mystrut}{\rule[-.3\baselineskip]{0pt}{\baselineskip}}
 
 \begin{document}
 
-\makecvtitle
+\pagestyle{fancy}
 
-% Professional Summary
-{% if personal_info.summary %}
-\section{Professional Summary}
-\cvitem{}{{ personal_info.summary }}
-{% endif %}
+%---------------------------------------------------------------------------------------
+%	TITLE HEADLINE
+%----------------------------------------------------------------------------------------
+\vspace{-8pt}
+% Replace this part:
+\begin{center}
+	\HUGE \textsc{Chater Marzougui} \\
+	\small chater.marzougui@supcom.tn | +216 28 356 927 |  \href{https://github.com/chater-marzougui}{\faGithub{ Github} }
+    \hspace{2px}
+    \href{https://www.linkedin.com/in/chater-marzougui-342125299}{\faLinkedin{ Linkedin} }
+    \hspace{2px}
+    \href{https:///chater-marzougui.me/Portfolio}{\faGlobe{ Portfolio } }
+    \hspace{2px}
+    \href{https://zindi.africa/users/chater_marzougui}{{ Zindi} }\\
+    \hspace{4px}
+    \textit{Software Engineer focused on AI systems, real-time applications, and intelligent platforms}
 
-% Technical Skills
-{% if personal_info.skills %}
-\section{Technical Skills}
-{% for skill_category, skills in personal_info.skills.items() %}
-\cvitem{{ skill_category }}{{ skills|join(', ') }}
-{% endfor %}
-{% endif %}
+\end{center}
 
-% Relevant Projects
-\section{Relevant Projects}
-{% for project in projects %}
-\cventry{}{{ project.name }}{}{}{}
-{
-    \begin{itemize}
-        \item {{ project.three_liner.replace('\n', '') }}
-        \item Technologies: {{ project.technologies|join(', ') }}
-        {% if project.stars > 0 %}\item GitHub: {{ project.stars }} stars, {{ project.forks }} forks{% endif %}
-    \end{itemize}
-    \textit{Repository: \url{{ project.url }}}
+
+\vspace{-14pt}
+\normalsize
+
+%---------------------------------------------------------------------------------------
+%	EDUCATION SECTION
+%--------------------------------------------------------------------------------------
+\cvsection{FORMAL EDUCATION}
+
+\cveventt{2021-2023}{Preparatory Cycle Physics-Chemistry}{Faculty of Science, Monastir}
+{Preparatory Classes for National Engineering Entrance Exams}
+
+\vspace{7pt}
+
+\cveventt{2023-2025}{National Engineering Degree in Telecommunications}{Sup’Com, Tunisia}
+{Focus on Embedded Systems, AI Applications, and Software Development}
+
+\vspace{-4pt}
+
+%---------------------------------------------------------------------------------------
+%	EXPERIENCE
+%----------------------------------------------------------------------------------------
+\cvsection{PAST INTERNSHIPS}
+
+% \cvevent{Jul 2024 – Aug 2024}{Software Engineer Intern – Backend & Systems Optimization}{Converty (E-commerce Platform Builder)}{}
+\cveventt{Jul – Aug 2024}{Software Engineer Intern – Backend \& Systems Optimization}{Converty}{}
+
+\vspace{-6px}
+
+\begin{itemize}
+\setlength{\itemsep}{-2pt} % Adjust this value as needed (e.g., 2pt, -1pt)
+\item Refactored a high-latency analytics system, improving response times by restructuring calls to the Stats microservice and implementing Redis-based smart caching strategies.
+\item Migrated data-fetching logic from the back-end to a dedicated microservice to enable separation of concerns and improve system scalability while cutting wait times by up to 70\%.
+\item Optimized MongoDB queries with targeted filters and aggregation pipelines, reducing unnecessary data load and improving system throughput.
+\end{itemize}
+
+% Internship 2
+\cveventt{Jul – Aug 2024}{Software Engineer Intern}{Lanci LLC}{}
+
+Created a full system dedicated to link delivery companies and businesses Including System Design, routing, order creation, and status tracking, with an emphasis on delivery, pickup, and returns. Role-based access control, database schema refinement, and extensive validation. Dynamic status transition management for flexible order workflows. Order scan for transition validation.
+
+%---------------------------------------------------------------------------------------
+%	OSS
+%----------------------------------------------------------------------------------------
+\vspace{-10px}
+\cvsection{COMPETITIONS AND CONTRIBUTIONS}
+
+
+\cveventh{Competitions \& Achievements}{
+\begin{itemize}[noitemsep, topsep=-1pt, left=0pt]
+    \item \textbf{2nd Place — Orange AI Hackathon} Developed a mobile app and chatbot to find and describe the top 5 amenities closest to the user.
+    \item \textbf{3rd Place — GO DATA SCIENCE 4.0, Mental Health Challenge (Zindi)} Developed a classification model that achieves 80\% precision for mental health assessment using NLP techniques.
+    \item \textbf{3rd Place — AI Anatomy Hackathon} Fifth place in the kaggle competition: Fine-tuned an LLM model for enhanced biomedical text generation 
+And a mobile application with text-to-speech, speech-to-text, and agentic AI for medical procedures.
+\end{itemize}
 }
-{% endfor %}
 
-% Work Experience
-{% if personal_info.experience %}
-\section{Work Experience}
-{% for job in personal_info.experience %}
-\cventry{{ job.start_date }}--{{ job.end_date }}{{ job.title }}{{ job.company }}{{ job.location }}{}
-{
-    {% if job.description %}{{ job.description }}{% endif %}
-    {% if job.achievements %}
-    \begin{itemize}
-        {% for achievement in job.achievements %}
-        \item {{ achievement }}
-        {% endfor %}
-    \end{itemize}
-    {% endif %}
+\vspace{6px}
+
+\cveventh{Contributions}{
+\begin{itemize}[noitemsep, topsep=0pt, left=3pt]
+    \item \textbf{President of IEEE RAS Chapter — Sup'Com Student Branch}
+          \\ Organized and led robotics initiatives, workshops, and competitions; oversaw team logistics, partnerships, and interdisciplinary collaboration
+    \item \textbf{Technical \& Hackathon Manager — IndabaX Tunisia 2024}{\href{https://indabaxtunisia.com/2024}{{ Live Website Link} }}
+          \\ Built and maintained the official event website, implemented speaker \& sponsor updates, managed registration for 400+ attendees, and made the competition on Zindi.
+\end{itemize}
 }
-{% endfor %}
-{% endif %}
 
-% Education
-{% if personal_info.education %}
-\section{Education}
-{% for edu in personal_info.education %}
-\cventry{{ edu.start_date }}--{{ edu.end_date }}{{ edu.degree }}{{ edu.institution }}{{ edu.location }}{{ edu.gpa }}{{ edu.description }}
-{% endfor %}
-{% endif %}
+%---------------------------------------------------------------------------------------
+%	Projects
+%----------------------------------------------------------------------------------------
+
+\vspace{-6px}
+\cvsection{PERSONAL PROJECTS}
+\vspace{-3px}
+\begin{itemize}[noitemsep, topsep=0pt, left=3pt]
+ \item {\href{https://github.com/chater-marzougui/Samsar}{\color{bgcol}\faGithub{ Code Link}} \textbf{Samsar - Real Estate Flutter App}
+Developed a comprehensive Flutter application for the Tunisian real estate market with interactive map integration, advanced property filtering, and positioning capabilities. Features Firebase backend for real-time data management and NOMINATIM/OverPass Turbo APIs for location services, serving both property listers and buyers.
+\textit{(Flutter, Dart, Firebase, NOMINATIM API, OverPass Turbo)}}
+\vspace{5px}
+
+\item {\href{https://github.com/chater-marzougui/MoodMuse}{\color{bgcol}\faGithub{ Code Link}} \textbf{MoodMuse - AI Mood-Based Music App}
+Built a Flutter mobile application that captures user images via device camera, analyzes facial expressions using AI mood detection, and generates personalized music playlists based on emotional state. Integrated real-time image processing with music recommendation algorithms for an immersive user experience.
+\textit{(Flutter, Dart, AI/ML APIs, Camera Integration, ngrok)}}
+\vspace{5px}
+
+\item {\href{https://github.com/chater-marzougui/Flutter-Car-Control_Http}{\color{bgcol}\faGithub{ App Code}} \textbf{RC Car Controller - IoT Mobile App}
+Designed a Flutter application for remote control of ESP32/ESP8266-based RC cars featuring dual control modes: button-based navigation and gyroscope sensor control. Implemented HTTP communication protocol for real-time responsiveness between mobile device and embedded hardware.
+\textit{(Flutter, Dart, HTTP Communication, Gyroscope Sensors, ESP32/ESP8266, Arduino C++)}}
+\vspace{5px}
+
+\item {\href{https://github.com/chater-marzougui/AI-Anatomy}{\color{bgcol}\faGithub{ Code Link}} \textbf{The Flying Dutchman - AI Anatomy Assistant}
+Created a Flutter mobile application leveraging Google's Gemini AI API to provide instant answers to human anatomy questions. Designed for students and educators with an intuitive interface for medical learning and exam preparation, bringing intelligent anatomy assistance to mobile devices.
+\textit{(Flutter, Dart, Google Gemini AI API, Medical Education)}}
+
+\end{itemize}
+
+\vspace{-12px}
+\cvsection{CODING STACK}
+\begin{itemize}[noitemsep, topsep=0pt, left=3pt]
+    \item  \textbf{Programming Languages}: Python, Dart, JS, TypeScript, Go, C/C++, MATLAB
+    \item  \textbf{Frameworks/Libraries}: Flutter, React, PyTorch, Scikit-learn, Simulink
+    \item  \textbf{Tools, Platforms \& OS}: Git/GitHub, Firebase, MongoDB, PostgreSQL, Redis, DrizzleORM
+    \item  \textbf{Languages}: Arabic (Native), English (C1 - TOEIC), French (Intermediate)
+
+\end{itemize}
 
 \end{document}

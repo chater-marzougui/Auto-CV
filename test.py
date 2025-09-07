@@ -162,8 +162,10 @@ def match_projects_to_job():
     """Match projects to job description"""
     print("🎯 Matching projects to job description...")
     
-    result = make_request("POST", "/api/v1/match-projects", JOB_DESCRIPTION)
-    
+    result = make_request("POST", "/api/v1/match-projects", {
+        "job_description": JOB_DESCRIPTION
+    })
+
     if result:
         print(f"✅ Found {len(result)} matching projects:")
         for i, match in enumerate(result, 1):
@@ -243,7 +245,7 @@ def main():
         return
     
     print()
-    
+    """
     # Test 2: Scrape GitHub (this takes time)
     print("⚠️  GitHub scraping may take 1-2 minutes...")
     scrape_result = scrape_github_profile()
@@ -254,7 +256,7 @@ def main():
         time.sleep(3)
     
     print()
-    
+    """
     # Test 3: List projects
     list_projects()
     print()

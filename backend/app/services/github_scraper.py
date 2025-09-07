@@ -31,7 +31,6 @@ class GitHubScraper:
         Scrape all repositories from a GitHub user and process them
         """
         print(f"Scraping repositories for user: {username}")
-        print("Using GitHub token:", "Yes" if self.github_token else "No")
         if not self.github_token:
             print("Warning: No GitHub token provided. You will hit rate limits.")
             return []

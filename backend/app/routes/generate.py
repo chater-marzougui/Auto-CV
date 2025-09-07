@@ -2,14 +2,14 @@ from fastapi import APIRouter, HTTPException, File, UploadFile
 from fastapi.responses import FileResponse
 from typing import Dict, Any
 import os
-from app.models.project import CVGenerationRequest, CoverLetterRequest, JobDescription
+from pydantic import BaseModel
+from app.models.project import CVGenerationRequest, CoverLetterRequest, GenerateFullApplicationRequest
 from app.services.cv_generator import CVGenerator
 from app.services.letter_generator import CoverLetterGenerator
 from app.services.embeddings import EmbeddingService
 
 router = APIRouter()
 
-@router.post("/generate-cv")
 def generate_cv(request: CVGenerationRequest):
     """
     Generate a CV PDF based on matched projects and personal information
@@ -56,18 +56,19 @@ def generate_cover_letter(request: CoverLetterRequest):
         raise HTTPException(status_code=500, detail=f"Error generating cover letter: {str(e)}")
 
 @router.post("/generate-full-application")
-def generate_full_application(
-    job_description: JobDescription,
-    personal_info: Dict[str, Any],
-    top_k: int = 4
-):
+def generate_full_application(request: GenerateFullApplicationRequest):
     """
     Generate both CV and cover letter for a complete job application
     """
     try:
         # Step 1: Find matching projects
         embedding_service = EmbeddingService()
-        matched_projects = embedding_service.find_matching_projects(job_description, top_k)
+        jd = request.job_description
+        if isinstance(jd, dict):
+            job_description = ", ".join(str(v) for v in jd.values() if v)
+        else:
+            job_description = str(jd)
+        matched_projects = embedding_service.find_matching_projects(job_description, request.top_k)
         
         if not matched_projects:
             raise HTTPException(
@@ -78,7 +79,7 @@ def generate_full_application(
         # Step 2: Generate CV
         cv_request = CVGenerationRequest(
             matched_projects=matched_projects,
-            personal_info=personal_info
+            personal_info=request.personal_info
         )
         
         cv_generator = CVGenerator()
@@ -89,7 +90,7 @@ def generate_full_application(
         letter_request = CoverLetterRequest(
             job_description=job_description,
             matched_projects=matched_projects,
-            personal_info=personal_info
+            personal_info=request.personal_info
         )
         
         letter_generator = CoverLetterGenerator()

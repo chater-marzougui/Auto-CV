@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from typing import List, Optional
+from typing import Dict, List, Optional, Any
 from datetime import datetime
 
 class Project(BaseModel):
@@ -37,3 +37,8 @@ class CoverLetterRequest(BaseModel):
     matched_projects: List[MatchedProject]
     personal_info: dict
     template_path: Optional[str] = None
+    
+class GenerateFullApplicationRequest(BaseModel):
+    job_description: dict | str
+    personal_info: Dict[str, Any]
+    top_k: int = 4
