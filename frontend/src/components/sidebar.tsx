@@ -1,6 +1,7 @@
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { FileText, GitBranch, Briefcase, Github } from "lucide-react"
+import { ThemeToggle } from "@/components/theme-toggle"
 
 interface SidebarProps {
   activeTab: string
@@ -33,12 +34,15 @@ export function Sidebar({ activeTab, onTabChange }: SidebarProps) {
     <div className="w-64 bg-sidebar border-r border-sidebar-border flex flex-col">
       {/* Header */}
       <div className="p-6 border-b border-sidebar-border">
-        <div className="flex items-center gap-2">
-          <Github className="h-8 w-8 text-sidebar-primary" />
-          <div>
-            <h1 className="font-heading font-bold text-lg text-sidebar-foreground">Auto-CV</h1>
-            <p className="text-sm text-sidebar-foreground/60">AI-powered CV generator</p>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Github className="h-8 w-8 text-sidebar-primary" />
+            <div>
+              <h1 className="font-heading font-bold text-lg text-sidebar-foreground">Auto-CV</h1>
+              <p className="text-sm text-sidebar-foreground/60">AI-powered CV generator</p>
+            </div>
           </div>
+          <ThemeToggle />
         </div>
       </div>
 
