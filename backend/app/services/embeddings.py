@@ -1,10 +1,10 @@
 import os
 import numpy as np
 import pickle
-from typing import List, Dict, Tuple
+from typing import List, Dict
 from sentence_transformers import SentenceTransformer
 import faiss
-from app.models.project import Project, JobDescription, MatchedProject
+from app.models.project import Project, MatchedProject
 
 class EmbeddingService:
     def __init__(self):

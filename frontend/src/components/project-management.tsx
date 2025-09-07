@@ -9,9 +9,10 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Github, Star, GitFork, RefreshCw } from "lucide-react";
+import { Loader2, Github, Star, GitFork, RefreshCw, Activity } from "lucide-react";
 import { config } from "@/config";
 import { toast } from "sonner";
+import { ProgressCard } from "./progress-card";
 
 interface Project {
   name: string;
@@ -20,6 +21,8 @@ interface Project {
   three_liner: string;
   detailed_paragraph: string;
   technologies: string[];
+  bad_readme: boolean;
+  no_readme: boolean;
   stars: number;
   forks: number;
   language: string;
@@ -33,6 +36,8 @@ export function ProjectManagement() {
   const [isLoading, setIsLoading] = useState(false);
   const [isScraping, setIsScraping] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [showProgress, setShowProgress] = useState(false);
+  const [currentClientId, setCurrentClientId] = useState<string | null>(null);
 
   useEffect(() => {
     loadProjects();
@@ -50,20 +55,29 @@ export function ProjectManagement() {
       }
     } catch (error) {
       console.error("Failed to load projects:", error);
+      toast.error("Failed to load projects");
     } finally {
       setIsLoading(false);
     }
   };
 
+  const getReadmeStatus = (project: Project) => {
+    if (project.bad_readme)
+      return { text: "Bad README", variant: "destructive" as const };
+    if (project.no_readme)
+      return { text: "No README", variant: "secondary" as const };
+    return null;
+  };
+
   const scrapeGithub = async () => {
     if (!githubUsername.trim()) {
-      toast.error("Error", {
-        description: "Please enter a GitHub username",
-      });
+      toast.error("Please enter a GitHub username");
       return;
     }
 
     setIsScraping(true);
+    setShowProgress(true);
+    
     try {
       const response = await fetch(
         `${config.api.baseUrl}${config.api.endpoints.scrapeGithub}`,
@@ -74,18 +88,27 @@ export function ProjectManagement() {
         }
       );
 
-      if (!response.ok) throw new Error("Failed to scrape GitHub");
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.detail || "Failed to scrape GitHub");
+      }
 
       const result = await response.json();
+      setCurrentClientId(result.client_id);
 
-      toast.success(`Scraped ${result.projects_count} projects successfully`);
+      toast.success(`Successfully initiated scraping for ${result.projects_count} projects`);
 
-      // Reload projects after scraping
-      await loadProjects();
+      // Auto-reload projects after a delay to ensure processing is complete
+      setTimeout(async () => {
+        await loadProjects();
+        setShowProgress(false);
+      }, 5000);
+
     } catch (error) {
       toast.error("Failed to scrape GitHub repositories", {
-        description: error instanceof Error ? `: ${error.message}` : "",
+        description: error instanceof Error ? error.message : "Unknown error occurred",
       });
+      setShowProgress(false);
     } finally {
       setIsScraping(false);
     }
@@ -101,15 +124,24 @@ export function ProjectManagement() {
         }
       );
 
-      if (!response.ok) throw new Error("Failed to refresh embeddings");
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.detail || "Failed to refresh embeddings");
+      }
+      
       toast.success("Embeddings refreshed successfully");
     } catch (error) {
       toast.error("Failed to refresh embeddings", {
-        description: error instanceof Error ? `: ${error.message}` : "",
+        description: error instanceof Error ? error.message : "Unknown error occurred",
       });
     } finally {
       setIsRefreshing(false);
     }
+  };
+
+  const handleProgressClose = () => {
+    setShowProgress(false);
+    setCurrentClientId(null);
   };
 
   if (isLoading && projects.length === 0) {
@@ -120,16 +152,35 @@ export function ProjectManagement() {
     );
   }
 
+  const websocketUrl = currentClientId ? 
+    `ws://localhost:5000/ws/${currentClientId}` : 
+    `ws://localhost:5000/ws/${Date.now()}`;
+
   return (
     <div className="flex flex-col h-full">
       {/* Header */}
       <div className="border-b border-border p-6">
-        <h1 className="font-heading text-2xl font-bold text-foreground">
-          Project Management
-        </h1>
-        <p className="text-muted-foreground mt-1">
-          Manage your GitHub repositories and project embeddings
-        </p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="font-heading text-2xl font-bold text-foreground">
+              Project Management
+            </h1>
+            <p className="text-muted-foreground mt-1">
+              Manage your GitHub repositories and project embeddings
+            </p>
+          </div>
+          
+          {/* Progress Toggle */}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setShowProgress(!showProgress)}
+            className="flex items-center gap-2"
+          >
+            <Activity className="h-4 w-4" />
+            {showProgress ? 'Hide Progress' : 'Show Progress'}
+          </Button>
+        </div>
       </div>
 
       {/* Content */}
@@ -139,7 +190,7 @@ export function ProjectManagement() {
           <CardHeader>
             <CardTitle>GitHub Integration</CardTitle>
             <CardDescription>
-              Scrape repositories from your GitHub profile
+              Scrape repositories from your GitHub profile and track progress in real-time
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -149,6 +200,7 @@ export function ProjectManagement() {
                 value={githubUsername}
                 onChange={(e) => setGithubUsername(e.target.value)}
                 className="flex-1"
+                disabled={isScraping}
               />
               <Button
                 onClick={scrapeGithub}
@@ -167,6 +219,13 @@ export function ProjectManagement() {
                 )}
               </Button>
             </div>
+
+            {isScraping && (
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Processing repositories... Check the progress card for details.
+              </div>
+            )}
 
             <div className="flex gap-2">
               <Button
@@ -194,7 +253,14 @@ export function ProjectManagement() {
                 disabled={isLoading}
                 className="cursor-pointer"
               >
-                Reload Projects
+                {isLoading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Loading...
+                  </>
+                ) : (
+                  "Reload Projects"
+                )}
               </Button>
             </div>
           </CardContent>
@@ -214,7 +280,7 @@ export function ProjectManagement() {
                 <Github className="h-12 w-12 text-muted-foreground mb-4" />
                 <h3 className="font-medium text-lg mb-2">No Projects Found</h3>
                 <p className="text-muted-foreground text-center mb-4">
-                  Enter your GitHub username above to scrape your repositories
+                  Enter your GitHub username above to scrape your repositories and see real-time progress
                 </p>
               </CardContent>
             </Card>
@@ -227,9 +293,16 @@ export function ProjectManagement() {
                       <CardTitle className="text-lg font-medium truncate">
                         {project.name}
                       </CardTitle>
-                      <Badge variant="outline" className="ml-2 shrink-0">
-                        {project.language || "Unknown"}
-                      </Badge>
+                      <div className="flex gap-1 ml-2 shrink-0">
+                        <Badge variant="outline">
+                          {project.language || "Unknown"}
+                        </Badge>
+                        {getReadmeStatus(project) && (
+                          <Badge variant={getReadmeStatus(project)!.variant}>
+                            {getReadmeStatus(project)!.text}
+                          </Badge>
+                        )}
+                      </div>
                     </div>
                     <CardDescription className="line-clamp-2">
                       {project.three_liner ||
@@ -310,6 +383,13 @@ export function ProjectManagement() {
           )}
         </div>
       </div>
+
+      {/* Progress Card - Fixed positioned overlay */}
+      <ProgressCard
+        isVisible={showProgress}
+        onClose={handleProgressClose}
+        websocketUrl={websocketUrl}
+      />
     </div>
   );
 }

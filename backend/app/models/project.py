@@ -8,10 +8,11 @@ class Project(BaseModel):
     description: str  # Original GitHub description
     readme_content: str  # Full README content
     three_liner: str  # AI-generated 3-line summary
-    bad_readme: bool
     detailed_paragraph: str  # AI-generated detailed paragraph
     technologies: List[str]  # Extracted technologies
     tree: List[str]
+    bad_readme: bool
+    no_readme: bool
     stars: int
     forks: int
     language: str
