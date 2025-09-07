@@ -11,6 +11,7 @@ from app.services.gemini_service import GeminiService
 from github import Repository
 from concurrent.futures import ThreadPoolExecutor
 import functools
+from app.utils.colored_logger import get_scraper_logger, log_progress, log_success, log_warning, log_error, log_debug
 
 class GitHubScraper:
     def __init__(self, github_token: Optional[str] = None, websocket_manager=None, client_id: str = None):
@@ -33,8 +34,19 @@ class GitHubScraper:
         # Thread pool for blocking operations
         self.executor = ThreadPoolExecutor(max_workers=3)
         
+        # Setup logger
+        self.logger = get_scraper_logger()
+        
         # Create data directory if it doesn't exist
         os.makedirs(self.data_dir, exist_ok=True)
+        
+        log_success(self.logger, "GitHubScraper initialized", f"client_id: {client_id}")
+    
+    def cleanup(self):
+        """Clean up resources"""
+        if hasattr(self, 'executor'):
+            self.executor.shutdown(wait=True)
+            log_success(self.logger, "Thread executor cleaned up", self.client_id or "unknown")
     
     async def send_progress(self, message: str, step: str, current: int = 0, total: int = 0, 
                           repo_name: str = "", alert_type: str = None, alert_message: str = ""):
@@ -64,12 +76,15 @@ class GitHubScraper:
         """
         Scrape all repositories from a GitHub user and process them
         """
+        log_progress(self.logger, f"Starting GitHub scrape", repo=username)
+        
         await self.send_progress(
             f"Starting GitHub scrape for user: {username}", 
             "initialization"
         )
         
         if not self.github_token:
+            log_warning(self.logger, "No GitHub token provided - rate limits may apply", username)
             await self.send_progress(
                 "No GitHub token provided - rate limits may apply", 
                 "warning",
@@ -79,12 +94,14 @@ class GitHubScraper:
         
         try:
             # Run GitHub API calls in executor to avoid blocking
+            log_progress(self.logger, "Fetching user repositories", step="API_CALL", repo=username)
             await self.send_progress("Fetching user repositories...", "fetching")
             
             user = await self._run_in_executor(self.github.get_user, username)
             repos_list = await self._run_in_executor(lambda: list(user.get_repos(type='owner')))
             owned_repos = [repo for repo in repos_list if not repo.fork]
             
+            log_success(self.logger, f"Found {len(owned_repos)} repositories to process", username)
             await self.send_progress(
                 f"Found {len(owned_repos)} repositories to process", 
                 "discovery",
@@ -97,8 +114,10 @@ class GitHubScraper:
             # Limit for testing - remove this in production
             test_limit = 3
             repos_to_process = owned_repos[:test_limit]
+            log_warning(self.logger, f"Processing only {test_limit} repos for testing", username)
             
             for i, repo in enumerate(repos_to_process, 1):
+                log_progress(self.logger, f"Processing repository: {repo.name} ({i}/{len(repos_to_process)})", repo=username)
                 await self.send_progress(
                     f"Processing repository: {repo.name}", 
                     "processing",
@@ -109,6 +128,7 @@ class GitHubScraper:
                 
                 # Check if repo is already processed and up-to-date
                 if any(p.name == repo.name and repo.updated_at <= p.updated_at for p in existing_projects):
+                    log_warning(self.logger, f"Repository {repo.name} is already up-to-date, skipping", username)
                     await self.send_progress(
                         f"Repository {repo.name} is already up-to-date, skipping", 
                         "skipping",
@@ -123,18 +143,22 @@ class GitHubScraper:
                 project = await self._process_repository(repo, i, len(repos_to_process))
                 if project:
                     projects.append(project)
+                    log_success(self.logger, f"Successfully processed {repo.name}", username)
                     
                 # Add a small delay between repositories to prevent overwhelming
                 await asyncio.sleep(0.5)
 
             # Save projects to JSON file
+            log_progress(self.logger, "Saving projects to database", step="SAVE", repo=username)
             await self.send_progress("Saving projects to database", "saving")
             await self._run_in_executor(self._save_projects, projects)
             
             # Generate embeddings for all projects
+            log_progress(self.logger, "Generating embeddings for semantic search", step="EMBEDDINGS", repo=username)
             await self.send_progress("Generating embeddings for semantic search", "embeddings")
             await self._run_in_executor(self.embedding_service.generate_embeddings_for_projects, projects)
 
+            log_success(self.logger, f"Successfully processed {len(projects)} projects", username)
             await self.send_progress(
                 f"Successfully processed {len(projects)} projects", 
                 "completed",
@@ -146,6 +170,7 @@ class GitHubScraper:
             return projects
             
         except Exception as e:
+            log_error(self.logger, f"Error scraping GitHub profile: {str(e)}", username, exc_info=True)
             await self.send_progress(
                 f"Error scraping GitHub profile: {str(e)}", 
                 "error",
