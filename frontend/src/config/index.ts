@@ -8,7 +8,9 @@ export const config = {
       refreshEmbeddings: "/api/v1/refresh-embeddings",
       analyzeJob: "/api/v1/analyze-job",
       matchProjects: "/api/v1/match-projects",
-      generateApplication: "/api/v1/generate-full-application"
+      generateApplication: "/api/v1/generate-full-application",
+      toggleProjectVisibility: "/api/v1/projects/{projectName}/visibility",
+      updateProject: "/api/v1/projects/{projectName}/update"
     }
   },
   
