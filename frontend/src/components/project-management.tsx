@@ -16,6 +16,8 @@ import {
   GitFork,
   RefreshCw,
   Activity,
+  XCircle,
+  AlertTriangle
 } from "lucide-react";
 import { config } from "@/config";
 import { toast } from "sonner";
@@ -69,10 +71,18 @@ export default function ProjectManagement() {
   };
 
   const getReadmeStatus = (project: Project) => {
-    if (project.bad_readme)
-      return { text: "Bad README", variant: "destructive" as const };
     if (project.no_readme)
-      return { text: "No README", variant: "secondary" as const };
+      return {
+        icon: <AlertTriangle className="h-5 w-5" />, // No README: warning triangle
+        variant: "destructive" as const,
+        text: "No README",
+      };
+    if (project.bad_readme)
+      return {
+        icon: <AlertTriangle className="h-5 w-5" />, // Bad README: warning triangle
+        variant: "default" as const,
+        text: "Bad README",
+      };
     return null;
   };
 
@@ -107,7 +117,6 @@ export default function ProjectManagement() {
       toast.success(`GitHub scraping initiated for ${githubUsername}`, {
         description: "Check the progress panel for real-time updates",
       });
-
     } catch (error) {
       toast.error("Failed to scrape GitHub repositories", {
         description:
@@ -147,8 +156,25 @@ export default function ProjectManagement() {
 
   const handleProgressClose = () => {
     setShowProgress(false);
-    setCurrentClientId(null);
   };
+
+  const onCompleteScraping = async () => {
+    try {
+      const response = await fetch(
+        `${config.api.baseUrl}${config.api.endpoints.projects}`
+      );
+      if (response.ok) {
+        const data = await response.json();
+        setProjects(data.projects || []);
+      }
+    } catch (error) {
+      console.error("Failed to load projects:", error);
+      toast.error("Failed to load projects", {
+        description:
+          error instanceof Error ? error.message : "Unknown error occurred",
+      });
+    }
+  }
 
   if (isLoading && projects.length === 0) {
     return (
@@ -304,12 +330,13 @@ export default function ProjectManagement() {
                         {project.name}
                       </CardTitle>
                       <div className="flex gap-1 ml-2 shrink-0">
-                        <Badge variant="outline">
-                          {project.language || "Unknown"}
-                        </Badge>
-                        {getReadmeStatus(project) && (
-                          <Badge variant={getReadmeStatus(project)!.variant}>
-                            {getReadmeStatus(project)!.text}
+                        {getReadmeStatus(project) ? (
+                          <Badge variant={getReadmeStatus(project)!.variant} className="text-xs p-2">
+                            {getReadmeStatus(project)!.icon}
+                          </Badge>
+                        ) : (
+                          <Badge variant="outline">
+                            {project.language || "Unknown"}
                           </Badge>
                         )}
                       </div>
@@ -400,6 +427,7 @@ export default function ProjectManagement() {
           isVisible={showProgress}
           onClose={handleProgressClose}
           websocketUrl={websocketUrl}
+          onComplete={onCompleteScraping}
         />
       )}
     </div>

@@ -111,10 +111,7 @@ class GitHubScraper:
             projects = []
             existing_projects = await self._run_in_executor(self.load_projects)
             
-            # Limit for testing - remove this in production
-            test_limit = 3
-            repos_to_process = owned_repos[:test_limit]
-            log_warning(self.logger, f"Processing only {test_limit} repos for testing", username)
+            repos_to_process = owned_repos[:9]
             
             for i, repo in enumerate(repos_to_process, 1):
                 log_progress(self.logger, f"Processing repository: {repo.name} ({i}/{len(repos_to_process)})", repo=username)

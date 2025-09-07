@@ -22,6 +22,7 @@ interface ProgressCardProps {
   isVisible: boolean;
   onClose: () => void;
   websocketUrl?: string;
+  onComplete?: () => void;
 }
 
 const stepIcons: Record<string, React.ElementType> = {
@@ -97,7 +98,9 @@ const getTimelineItemColor = (item: {
 export const ProgressCard: React.FC<ProgressCardProps> = ({ 
   isVisible, 
   onClose, 
-  websocketUrl = `ws://localhost:5000/ws/${Date.now()}` 
+  websocketUrl = `ws://localhost:5000/ws/${Date.now()}` ,
+  onComplete
+
 }) => {
   const [showTimeline, setShowTimeline] = useState(true);
   
@@ -160,6 +163,10 @@ export const ProgressCard: React.FC<ProgressCardProps> = ({
     });
     
     // Sort by timestamp (newest first)
+    if (onComplete && history.some(h => h.step === 'completed' || h.step === 'finished')) {
+      onComplete();
+    }
+    
     return timelineItems.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
   }, [history, alerts]);
 
@@ -234,7 +241,7 @@ export const ProgressCard: React.FC<ProgressCardProps> = ({
             <div className="flex items-center gap-2 text-xs">
               <span className="text-muted-foreground">Current Step:</span>
               <Badge variant={isConnected ? 'default' : 'secondary'} className="text-xs">
-                {currentStep.replace('_', ' ').toUpperCase()}
+                {currentStep?.replace('_', ' ').toUpperCase()}
               </Badge>
             </div>
           </div>
