@@ -44,3 +44,4 @@ class GenerateFullApplicationRequest(BaseModel):
     job_description: dict | str
     personal_info: Dict[str, Any]
     top_k: int = 4
+    selected_projects: Optional[List[MatchedProject]] = None

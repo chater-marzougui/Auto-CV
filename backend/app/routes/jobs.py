@@ -12,7 +12,7 @@ class JobDescriptionInput(BaseModel):
 
 
 @router.post("/match-projects", response_model=List[MatchedProject])
-def match_projects_to_job(job_description: JobDescriptionInput, top_k: int = 4):
+def match_projects_to_job(job_description: JobDescriptionInput, top_k: int = 6):
     """
     Match projects to a job description and return the most relevant ones
     """

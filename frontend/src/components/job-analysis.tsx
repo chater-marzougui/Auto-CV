@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Loader2, Send, FileText, Mail } from "lucide-react";
 import { config } from "@/config";
 import { toast } from "sonner";
@@ -27,12 +28,44 @@ interface JobAnalysisResult {
   cover_letter_download_url?: string;
 }
 
+interface MatchedProject {
+  project: {
+    name: string;
+    description: string;
+    url: string;
+    technologies: string[];
+  };
+  similarity_score: number;
+}
+
+interface GenerateApplicationRequest {
+  job_description: string;
+  personal_info: {
+    first_name: string;
+    last_name: string;
+    email: string;
+    phone: string;
+    address: string;
+    city: string;
+    postal_code: string;
+    title: string;
+    summary: string;
+    skills: Record<string, string[]>;
+    experience: unknown[];
+    education: unknown[];
+  };
+  selected_projects?: MatchedProject[];
+  top_k?: number;
+}
+
 export function JobAnalysis() {
   const [jobDescription, setJobDescription] = useState("");
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [analysisResult, setAnalysisResult] =
     useState<JobAnalysisResult | null>(null);
+  const [matchedProjects, setMatchedProjects] = useState<MatchedProject[]>([]);
+  const [selectedProjects, setSelectedProjects] = useState<MatchedProject[]>([]);
 
   const analyzeJob = async () => {
     if (!jobDescription.trim()) {
@@ -69,14 +102,16 @@ export function JobAnalysis() {
         }
       );
 
-      let matchedProjects = [];
+      let matchedProjectsData = [];
       if (matchResponse.ok) {
-        matchedProjects = await matchResponse.json();
+        matchedProjectsData = await matchResponse.json();
+        setMatchedProjects(matchedProjectsData);
+        setSelectedProjects([]); // Reset selection when new projects are loaded
       }
 
       setAnalysisResult({
         ...analysis,
-        matched_projects: matchedProjects.map((mp: any) => ({
+        matched_projects: matchedProjectsData.map((mp: MatchedProject) => ({
           name: mp.project.name,
           similarity_score: mp.similarity_score,
         })),
@@ -94,38 +129,63 @@ export function JobAnalysis() {
     }
   };
 
+  const handleProjectSelection = (project: MatchedProject, checked: boolean) => {
+    if (checked) {
+      if (selectedProjects.length < 4) {
+        setSelectedProjects([...selectedProjects, project]);
+      } else {
+        toast.error("You can select at most 4 projects");
+      }
+    } else {
+      setSelectedProjects(selectedProjects.filter(p => p.project.name !== project.project.name));
+    }
+  };
+
   const generateApplication = async () => {
+    if (selectedProjects.length === 0) {
+      toast.error("Please select at least one project");
+      return;
+    }
+
     setIsGenerating(true);
     try {
+      const requestBody: GenerateApplicationRequest = {
+        job_description: jobDescription,
+        personal_info: {
+          first_name: "John",
+          last_name: "Doe",
+          email: "john.doe@example.com",
+          phone: "+1-555-0123",
+          address: "123 Tech Street",
+          city: "San Francisco",
+          postal_code: "94105",
+          title: "Software Developer",
+          summary:
+            "Experienced software developer with expertise in modern web technologies.",
+          skills: {
+            "Programming Languages": ["Python", "JavaScript", "TypeScript"],
+            "Web Frameworks": ["React", "FastAPI", "Next.js"],
+            Databases: ["PostgreSQL", "MongoDB"],
+            Tools: ["Docker", "Git", "AWS"],
+          },
+          experience: [],
+          education: [],
+        },
+      };
+
+      // If projects are selected, pass them instead of using top_k
+      if (selectedProjects.length > 0) {
+        requestBody.selected_projects = selectedProjects;
+      } else {
+        requestBody.top_k = 4;
+      }
+
       const response = await fetch(
         `${config.api.baseUrl}${config.api.endpoints.generateApplication}`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            job_description: jobDescription,
-            personal_info: {
-              first_name: "John",
-              last_name: "Doe",
-              email: "john.doe@example.com",
-              phone: "+1-555-0123",
-              address: "123 Tech Street",
-              city: "San Francisco",
-              postal_code: "94105",
-              title: "Software Developer",
-              summary:
-                "Experienced software developer with expertise in modern web technologies.",
-              skills: {
-                "Programming Languages": ["Python", "JavaScript", "TypeScript"],
-                "Web Frameworks": ["React", "FastAPI", "Next.js"],
-                Databases: ["PostgreSQL", "MongoDB"],
-                Tools: ["Docker", "Git", "AWS"],
-              },
-              experience: [],
-              education: [],
-            },
-            top_k: 4,
-          }),
+          body: JSON.stringify(requestBody),
         }
       );
 
@@ -206,7 +266,7 @@ export function JobAnalysis() {
               {analysisResult && (
                 <Button
                   onClick={generateApplication}
-                  disabled={isGenerating}
+                  disabled={isGenerating || selectedProjects.length === 0}
                   variant="secondary"
                 >
                   {isGenerating ? (
@@ -263,29 +323,67 @@ export function JobAnalysis() {
             </Card>
 
             {/* Matched Projects */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Matched Projects</CardTitle>
-                <CardDescription>
-                  Projects from your GitHub that best match this job
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  {analysisResult.matched_projects.map((project, index) => (
-                    <div
-                      key={index}
-                      className="flex items-center justify-between p-3 border border-border rounded-lg"
-                    >
-                      <span className="font-medium">{project.name}</span>
-                      <Badge variant="secondary">
-                        {(project.similarity_score * 100).toFixed(1)}% match
-                      </Badge>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
+            {matchedProjects.length > 0 && (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Matched Projects</CardTitle>
+                  <CardDescription>
+                    Select up to 4 projects that best match this job ({selectedProjects.length}/4 selected)
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3">
+                    {matchedProjects.map((matchedProject, index) => {
+                      const isSelected = selectedProjects.some(
+                        p => p.project.name === matchedProject.project.name
+                      );
+                      
+                      return (
+                        <div
+                          key={index}
+                          className="flex items-center space-x-3 p-3 border border-border rounded-lg"
+                        >
+                          <Checkbox
+                            checked={isSelected}
+                            onCheckedChange={(checked: boolean) => 
+                              handleProjectSelection(matchedProject, checked)
+                            }
+                            disabled={!isSelected && selectedProjects.length >= 4}
+                          />
+                          <div className="flex-1">
+                            <div className="flex items-center justify-between">
+                              <span className="font-medium">{matchedProject.project.name}</span>
+                              <Badge variant="secondary">
+                                {(matchedProject.similarity_score * 100).toFixed(1)}% match
+                              </Badge>
+                            </div>
+                            {matchedProject.project.description && (
+                              <p className="text-sm text-muted-foreground mt-1">
+                                {matchedProject.project.description}
+                              </p>
+                            )}
+                            {matchedProject.project.technologies && matchedProject.project.technologies.length > 0 && (
+                              <div className="flex flex-wrap gap-1 mt-2">
+                                {matchedProject.project.technologies.slice(0, 5).map((tech, techIndex) => (
+                                  <Badge key={techIndex} variant="outline" className="text-xs">
+                                    {tech}
+                                  </Badge>
+                                ))}
+                                {matchedProject.project.technologies.length > 5 && (
+                                  <Badge variant="outline" className="text-xs">
+                                    +{matchedProject.project.technologies.length - 5} more
+                                  </Badge>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
 
             {/* Download Section */}
             {(analysisResult.cv_download_url ||

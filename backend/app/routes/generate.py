@@ -55,20 +55,30 @@ def generate_full_application(request: GenerateFullApplicationRequest):
     Generate both CV and cover letter for a complete job application
     """
     try:
-        # Step 1: Find matching projects
-        embedding_service = EmbeddingService()
-        jd = request.job_description
-        if isinstance(jd, dict):
-            job_description = ", ".join(str(v) for v in jd.values() if v)
+        # Step 1: Get matching projects (use selected projects if provided, otherwise find them)
+        if request.selected_projects:
+            matched_projects = request.selected_projects
         else:
-            job_description = str(jd)
-        matched_projects = embedding_service.find_matching_projects(job_description, request.top_k)
+            embedding_service = EmbeddingService()
+            jd = request.job_description
+            if isinstance(jd, dict):
+                job_description = ", ".join(str(v) for v in jd.values() if v)
+            else:
+                job_description = str(jd)
+            matched_projects = embedding_service.find_matching_projects(job_description, request.top_k)
         
         if not matched_projects:
             raise HTTPException(
                 status_code=404,
                 detail="No matching projects found. Please scrape GitHub repositories first."
             )
+        
+        # Prepare job description for cover letter
+        jd = request.job_description
+        if isinstance(jd, dict):
+            job_description = ", ".join(str(v) for v in jd.values() if v)
+        else:
+            job_description = str(jd)
         
         # Step 2: Generate CV
         cv_request = CVGenerationRequest(
