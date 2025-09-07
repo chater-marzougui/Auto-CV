@@ -97,9 +97,15 @@ class EmbeddingService:
                 project_name = self.project_mapping[idx]
                 project = self.embeddings_cache['projects'][project_name]
                 
+                penalty = 0.0
+                if project.no_readme:
+                    penalty += 0.25  # Penalize heavily for no README
+                elif project.bad_readme:
+                    penalty += 0.35
+                
                 matched_project = MatchedProject(
                     project=project,
-                    similarity_score=float(score)
+                    similarity_score=float(score) - penalty
                 )
                 
                 matched_projects.append(matched_project)
@@ -158,8 +164,7 @@ class EmbeddingService:
             self.index = None
             self.embeddings_cache = {}
             self.project_mapping = {}
-    
-    def get_project_similarities(self, project_names: List[str]) -> Dict[str, Dict[str, float]]:
+
         """
         Get similarity scores between projects (useful for analysis)
         """

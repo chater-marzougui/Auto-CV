@@ -76,7 +76,7 @@ class GitHubScraper:
         """
         Scrape all repositories from a GitHub user and process them
         """
-        log_progress(self.logger, f"Starting GitHub scrape", repo=username)
+        log_progress(self.logger, "Starting GitHub scrape", repo=username)
         
         await self.send_progress(
             f"Starting GitHub scrape for user: {username}", 
@@ -111,7 +111,7 @@ class GitHubScraper:
             projects = []
             existing_projects = await self._run_in_executor(self.load_projects)
             
-            repos_to_process = owned_repos[:9]
+            repos_to_process = owned_repos
             
             for i, repo in enumerate(repos_to_process, 1):
                 log_progress(self.logger, f"Processing repository: {repo.name} ({i}/{len(repos_to_process)})", repo=username)

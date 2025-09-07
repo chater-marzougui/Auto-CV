@@ -28,6 +28,7 @@ def match_projects_to_job(job_description: JobDescriptionInput, top_k: int = 4):
 
         print(f"Finding top {top_k} matching projects for the job description: {jd_text[:50]}...")
         matched_projects = embedding_service.find_matching_projects(jd_text, top_k)
+        matched_projects = sorted(matched_projects, key=lambda x: x.similarity_score, reverse=True)
         
         if not matched_projects:
             raise HTTPException(
