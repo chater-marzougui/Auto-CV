@@ -63,13 +63,43 @@ const getAlertColor = (type: string) => {
   }
 };
 
+const getTimelineItemIcon = (item: {
+  alertType?: 'success' | 'warning' | 'error' | 'info';
+  step?: string;
+}) => {
+  if (item.alertType) {
+    return getAlertIcon(item.alertType);
+  }
+  return stepIcons[item.step || ''] || Clock;
+};
+
+const getTimelineItemColor = (item: {
+  alertType?: 'success' | 'warning' | 'error' | 'info';
+  step?: string;
+  isCompleted: boolean;
+}) => {
+  if (item.alertType) {
+    return getAlertColor(item.alertType);
+  }
+  
+  // Color based on completion status
+  if (item.isCompleted) {
+    return 'text-green-600 bg-green-50 border-green-200';
+  } else if (item.step === 'error') {
+    return 'text-red-500 bg-red-50 border-red-200';
+  } else if (item.step === 'warning') {
+    return 'text-yellow-600 bg-yellow-50 border-yellow-200';
+  } else {
+    return 'text-blue-500 bg-blue-50 border-blue-200';
+  }
+};
+
 export const ProgressCard: React.FC<ProgressCardProps> = ({ 
   isVisible, 
   onClose, 
   websocketUrl = `ws://localhost:5000/ws/${Date.now()}` 
 }) => {
-  const [showHistory, setShowHistory] = useState(false);
-  const [showAlerts, setShowAlerts] = useState(true);
+  const [showTimeline, setShowTimeline] = useState(true);
   
   const {
     isConnected,
@@ -86,6 +116,58 @@ export const ProgressCard: React.FC<ProgressCardProps> = ({
     removeAlert
   } = useProgressWebSocket(websocketUrl);
 
+  // Merge history and alerts into a unified timeline
+  const timeline = React.useMemo(() => {
+    const timelineItems: Array<{
+      id: string;
+      type: 'history' | 'alert';
+      timestamp: string;
+      message: string;
+      step?: string;
+      repo_name?: string;
+      current?: number;
+      total?: number;
+      alertType?: 'success' | 'warning' | 'error' | 'info';
+      isCompleted: boolean;
+    }> = [];
+    
+    // Add history items
+    history.forEach((item, index) => {
+      timelineItems.push({
+        id: `history-${item.timestamp}-${index}`,
+        type: 'history',
+        timestamp: item.timestamp,
+        message: item.message,
+        step: item.step,
+        repo_name: item.repo_name,
+        current: item.current,
+        total: item.total,
+        alertType: item.alert?.type,
+        isCompleted: index < history.length - 1 || (item.step === 'completed' || item.step === 'finished')
+      });
+    });
+    
+    // Add alert items
+    alerts.forEach(alert => {
+      timelineItems.push({
+        id: alert.id,
+        type: 'alert',
+        timestamp: alert.timestamp,
+        message: alert.message,
+        alertType: alert.type,
+        isCompleted: true
+      });
+    });
+    
+    // Sort by timestamp (newest first)
+    return timelineItems.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+  }, [history, alerts]);
+
+  const clearAll = () => {
+    clearHistory();
+    clearAlerts();
+  };
+
   React.useEffect(() => {
     if (isVisible && !isConnected) {
       connect();
@@ -100,14 +182,14 @@ export const ProgressCard: React.FC<ProgressCardProps> = ({
   const isProcessing = ['processing', 'ai_processing', 'embedding', 'saving', 'embeddings'].includes(currentStep);
 
   return (
-    <Card className="fixed bottom-4 right-4 w-96 max-h-[80vh] shadow-xl border-2 z-50 bg-background">
-      <CardHeader className="pb-3">
+    <Card className="fixed bottom-4 right-4 w-[420px] max-h-[85vh] shadow-xl border-2 z-50 bg-background">
+      <CardHeader className="pb-4">
         <div className="flex items-center justify-between">
-          <CardTitle className="text-lg font-semibold flex items-center gap-2">
-            <div className={`p-1 rounded-full ${isConnected ? 'bg-green-100 text-green-600' : 'bg-gray-100 text-gray-400'}`}>
-              <StepIcon className={`h-4 w-4 ${isProcessing ? 'animate-spin' : ''}`} />
+          <CardTitle className="text-lg font-semibold flex items-center gap-3">
+            <div className={`p-2 rounded-full ${isConnected ? 'bg-green-100 text-green-600' : 'bg-gray-100 text-gray-400'}`}>
+              <StepIcon className={`h-5 w-5 ${isProcessing ? 'animate-spin' : ''}`} />
             </div>
-            Scraping Progress
+            <span>Scraping Progress</span>
           </CardTitle>
           <Button
             variant="ghost"
@@ -119,19 +201,19 @@ export const ProgressCard: React.FC<ProgressCardProps> = ({
           </Button>
         </div>
         
-        <div className="space-y-2">
+        <div className="space-y-3">
           <div className="flex items-center justify-between text-sm">
-            <span className="text-muted-foreground">Status:</span>
-            <Badge variant={isConnected ? 'default' : 'secondary'}>
+            <span className="text-muted-foreground">Connection Status:</span>
+            <Badge variant={isConnected ? 'default' : 'secondary'} className="text-xs">
               {isConnected ? 'Connected' : 'Disconnected'}
             </Badge>
           </div>
           
           {progress > 0 && (
-            <div className="space-y-1">
+            <div className="space-y-2">
               <div className="flex justify-between text-sm">
-                <span>Progress</span>
-                <span>{Math.round(progress)}%</span>
+                <span>Overall Progress</span>
+                <span className="font-medium">{Math.round(progress)}%</span>
               </div>
               <Progress value={progress} className="h-2" />
             </div>
@@ -139,160 +221,139 @@ export const ProgressCard: React.FC<ProgressCardProps> = ({
         </div>
       </CardHeader>
 
-      <CardContent className="space-y-4 max-h-[50vh] overflow-y-auto">
+      <CardContent className="space-y-6 max-h-[60vh] overflow-y-auto">
         {/* Current Status */}
-        <div className="space-y-2">
-          <div className="p-3 bg-muted rounded-lg">
-            <div className="font-medium text-sm">{currentMessage}</div>
+        <div className="space-y-3">
+          <div className="p-4 bg-muted rounded-lg border">
+            <div className="font-medium text-sm mb-2">{currentMessage}</div>
             {currentRepo && (
-              <div className="text-xs text-muted-foreground mt-1">
-                Repository: {currentRepo}
+              <div className="text-xs text-muted-foreground mb-2">
+                Repository: <span className="font-mono">{currentRepo}</span>
               </div>
             )}
+            <div className="flex items-center gap-2 text-xs">
+              <span className="text-muted-foreground">Current Step:</span>
+              <Badge variant={isConnected ? 'default' : 'secondary'} className="text-xs">
+                {currentStep.replace('_', ' ').toUpperCase()}
+              </Badge>
+            </div>
           </div>
         </div>
 
-        {/* Alerts Section */}
-        {alerts.length > 0 && (
-          <div className="space-y-2">
+        {/* Unified Timeline */}
+        {timeline.length > 0 && (
+          <div className="space-y-3">
             <div className="flex items-center justify-between">
-              <h4 className="font-medium text-sm">Recent Alerts</h4>
+              <h4 className="font-medium text-sm flex items-center gap-2">
+                <GitBranch className="h-4 w-4" />
+                Activity Timeline
+                <Badge variant="outline" className="text-xs">
+                  {timeline.length}
+                </Badge>
+              </h4>
               <div className="flex gap-1">
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={() => setShowAlerts(!showAlerts)}
-                  className="h-6 px-2 text-xs"
+                  onClick={() => setShowTimeline(!showTimeline)}
+                  className="h-7 px-2 text-xs"
                 >
-                  {showAlerts ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+                  {showTimeline ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
                 </Button>
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={clearAlerts}
-                  className="h-6 px-2 text-xs"
+                  onClick={clearAll}
+                  className="h-7 px-2 text-xs"
                 >
                   Clear
                 </Button>
               </div>
             </div>
             
-            {showAlerts && (
-              <div className="space-y-2 max-h-32 overflow-y-auto">
-                {alerts.slice(-5).reverse().map((alert) => {
-                  const AlertIcon = getAlertIcon(alert.type);
+            {showTimeline && (
+              <div className="space-y-2 max-h-48 overflow-y-auto">
+                {timeline.slice(0, 20).map((item) => {
+                  const ItemIcon = getTimelineItemIcon(item);
+                  const isProcessing = ['processing', 'ai_processing', 'embedding', 'saving', 'embeddings'].includes(item.step || '');
+                  
                   return (
                     <div
-                      key={alert.id}
-                      className={`flex items-start gap-2 p-2 rounded border text-xs ${getAlertColor(alert.type)}`}
+                      key={item.id}
+                      className={`flex items-start gap-3 p-3 rounded-lg border text-xs ${getTimelineItemColor(item)}`}
                     >
-                      <AlertIcon className="h-3 w-3 mt-0.5 flex-shrink-0" />
-                      <div className="flex-1">
-                        <div>{alert.message}</div>
-                        <div className="text-xs opacity-70 mt-1">
-                          {new Date(alert.timestamp).toLocaleTimeString()}
+                      <div className="flex-shrink-0 mt-0.5">
+                        <ItemIcon className={`h-4 w-4 ${isProcessing ? 'animate-spin' : ''}`} />
+                      </div>
+                      
+                      <div className="flex-1 min-w-0">
+                        <div className="font-medium mb-1 break-words">{item.message}</div>
+                        
+                        {item.repo_name && (
+                          <div className="text-xs opacity-75 mb-1">
+                            <span className="font-mono">{item.repo_name}</span>
+                          </div>
+                        )}
+                        
+                        <div className="flex items-center justify-between">
+                          <div className="text-xs opacity-70">
+                            {new Date(item.timestamp).toLocaleTimeString()}
+                          </div>
+                          
+                          {(item.total || 0) > 0 && (
+                            <Badge variant="outline" className="text-xs ml-2">
+                              {item.current}/{item.total}
+                            </Badge>
+                          )}
                         </div>
                       </div>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => removeAlert(alert.id)}
-                        className="h-4 w-4 p-0 opacity-50 hover:opacity-100"
-                      >
-                        <X className="h-2 w-2" />
-                      </Button>
+                      
+                      {item.type === 'alert' && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => removeAlert(item.id)}
+                          className="h-5 w-5 p-0 opacity-50 hover:opacity-100 flex-shrink-0"
+                        >
+                          <X className="h-3 w-3" />
+                        </Button>
+                      )}
+                      
+                      {item.isCompleted && item.type === 'history' && (
+                        <div className="flex-shrink-0 mt-0.5">
+                          <CheckCircle className="h-3 w-3 text-green-500" />
+                        </div>
+                      )}
                     </div>
                   );
                 })}
+                
+                {timeline.length === 0 && (
+                  <div className="text-center text-muted-foreground text-xs py-6">
+                    <Clock className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                    No activity yet
+                  </div>
+                )}
               </div>
             )}
           </div>
         )}
 
-        {/* History Section */}
-        <div className="space-y-2">
-          <div className="flex items-center justify-between">
-            <h4 className="font-medium text-sm">Process History</h4>
-            <div className="flex gap-1">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setShowHistory(!showHistory)}
-                className="h-6 px-2 text-xs"
-              >
-                {showHistory ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={clearHistory}
-                className="h-6 px-2 text-xs"
-              >
-                Clear
-              </Button>
-            </div>
-          </div>
-          
-          {showHistory && (
-            <div className="space-y-1 max-h-40 overflow-y-auto">
-              {history.slice(-20).reverse().map((item, index) => {
-                const ItemIcon = stepIcons[item.step] || Clock;
-                const isItemProcessing = ['processing', 'ai_processing', 'embedding', 'saving', 'embeddings'].includes(item.step);
-                
-                return (
-                  <div
-                    key={`${item.timestamp}-${index}`}
-                    className="flex items-start gap-2 p-2 rounded bg-muted/50 text-xs"
-                  >
-                    <div className="flex-shrink-0 mt-0.5">
-                      <ItemIcon className={`h-3 w-3 text-muted-foreground ${isItemProcessing ? 'animate-spin' : ''}`} />
-                    </div>
-                    <div className="flex-1">
-                      <div className="font-medium">{item.message}</div>
-                      {item.repo_name && (
-                        <div className="text-muted-foreground">
-                          {item.repo_name}
-                        </div>
-                      )}
-                      <div className="text-muted-foreground opacity-70">
-                        {new Date(item.timestamp).toLocaleTimeString()}
-                      </div>
-                    </div>
-                    {item.total > 0 && (
-                      <Badge variant="outline" className="text-xs">
-                        {item.current}/{item.total}
-                      </Badge>
-                    )}
-                  </div>
-                );
-              })}
-              
-              {history.length === 0 && (
-                <div className="text-center text-muted-foreground text-xs py-4">
-                  No history available
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-
         {/* Connection Controls */}
-        <div className="flex gap-2 pt-2 border-t">
+        <div className="flex gap-2 pt-4 border-t">
           <Button
             variant="outline"
             size="sm"
             onClick={isConnected ? disconnect : connect}
-            className="text-xs"
+            className="text-xs flex items-center gap-1"
           >
+            <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-500' : 'bg-gray-400'}`} />
             {isConnected ? 'Disconnect' : 'Connect'}
           </Button>
           <Button
             variant="outline"
             size="sm"
-            onClick={() => {
-              clearHistory();
-              clearAlerts();
-            }}
+            onClick={clearAll}
             className="text-xs"
           >
             Clear All

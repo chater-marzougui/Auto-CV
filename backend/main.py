@@ -10,10 +10,11 @@ import json
 from typing import Dict, List
 import uuid
 import logging
+from app.utils.colored_logger import get_api_logger, get_websocket_logger, log_progress, log_success, log_warning, log_error
 
-# Configure logging
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
+# Configure colored logging
+api_logger = get_api_logger()
+ws_logger = get_websocket_logger()
 
 # Point directly to the backend/.env file
 load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), ".env"))
@@ -30,29 +31,29 @@ class WebSocketManager:
         await websocket.accept()
         async with self.connection_lock:
             self.active_connections[client_id] = websocket
-        logger.info(f"WebSocket connected for client: {client_id}")
+        log_success(ws_logger, f"WebSocket connected", f"client: {client_id}")
     
     async def disconnect(self, client_id: str):
         async with self.connection_lock:
             if client_id in self.active_connections:
-                logger.info(f"WebSocket disconnected for client: {client_id}")
+                log_warning(ws_logger, f"WebSocket disconnected", f"client: {client_id}")
                 del self.active_connections[client_id]
     
     async def send_progress(self, client_id: str, message: dict):
         async with self.connection_lock:
             if client_id in self.active_connections:
                 try:
-                    logger.info(f"Sending progress to client {client_id}: {message['message']}")
+                    log_progress(ws_logger, f"Sending progress: {message['message']}", step=message.get('step', ''), repo=client_id)
                     await self.active_connections[client_id].send_text(json.dumps(message))
                     return True
                 except Exception as e:
-                    logger.error(f"Error sending message to client {client_id}: {e}")
+                    log_error(ws_logger, f"Error sending message: {e}", f"client: {client_id}", exc_info=True)
                     # Connection might be closed, remove it
                     if client_id in self.active_connections:
                         del self.active_connections[client_id]
                     return False
             else:
-                logger.warning(f"No active connection found for client: {client_id}")
+                log_warning(ws_logger, f"No active connection found", f"client: {client_id}")
                 return False
 
 app = FastAPI(
@@ -104,7 +105,7 @@ async def websocket_endpoint(websocket: WebSocket, client_id: str):
                 break
                 
     except WebSocketDisconnect:
-        logger.info(f"WebSocket client {client_id} disconnected")
+        log_warning(ws_logger, f"WebSocket client disconnected", f"client: {client_id}")
     finally:
         await websocket_manager.disconnect(client_id)
 
@@ -112,7 +113,7 @@ async def perform_github_scraping(github_username: str, client_id: str):
     """Background task to perform GitHub scraping with proper async handling"""
     scraper = None
     try:
-        logger.info(f"Starting GitHub scraping task for: {github_username}")
+        log_progress(api_logger, f"Starting GitHub scraping task", repo=github_username)
         
         # Create scraper with WebSocket support
         scraper = GitHubScraper(websocket_manager=websocket_manager, client_id=client_id)
@@ -153,10 +154,10 @@ async def perform_github_scraping(github_username: str, client_id: str):
             }
         })
         
-        logger.info(f"Completed scraping {len(projects)} projects")
+        log_success(api_logger, f"Completed scraping {len(projects)} projects", github_username)
         
     except Exception as e:
-        logger.error(f"Error in GitHub scraping task: {e}")
+        log_error(api_logger, f"Error in GitHub scraping task: {e}", github_username, exc_info=True)
         
         # Send error message via WebSocket
         try:
@@ -174,7 +175,7 @@ async def perform_github_scraping(github_username: str, client_id: str):
                 }
             })
         except Exception as ws_error:
-            logger.error(f"Failed to send error message via WebSocket: {ws_error}")
+            log_error(api_logger, f"Failed to send error message via WebSocket: {ws_error}", github_username, exc_info=True)
     
     finally:
         # Clean up resources
@@ -189,7 +190,8 @@ async def scrape_github_profile(req: ScrapeRequest, background_tasks: Background
     try:
         github_username = req.github_username
         client_id = str(uuid.uuid4())
-        logger.info(f"Received scrape request for: {github_username}, client_id: {client_id}")
+        log_progress(api_logger, f"Received scrape request", repo=github_username)
+        log_progress(api_logger, f"Generated client_id: {client_id}", repo=github_username)
         
         # Add the scraping task to background tasks
         background_tasks.add_task(perform_github_scraping, github_username, client_id)
@@ -201,7 +203,7 @@ async def scrape_github_profile(req: ScrapeRequest, background_tasks: Background
         }
         
     except Exception as e:
-        logger.error(f"Error starting GitHub scraping: {e}")
+        log_error(api_logger, f"Error starting GitHub scraping: {e}", req.github_username, exc_info=True)
         raise HTTPException(status_code=400, detail=str(e))
 
 if __name__ == "__main__":
