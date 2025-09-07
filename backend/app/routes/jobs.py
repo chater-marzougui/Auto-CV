@@ -3,11 +3,12 @@ from typing import List
 from app.models.project import JobDescription, MatchedProject
 from app.services.embeddings import EmbeddingService
 from app.services.github_scraper import GitHubScraper
+from app.services.gemini_service import GeminiService
 
 router = APIRouter()
 
 @router.post("/match-projects", response_model=List[MatchedProject])
-def match_projects_to_job(job_description: JobDescription, top_k: int = 4):
+def match_projects_to_job(job_description: str, top_k: int = 4):
     """
     Match projects to a job description and return the most relevant ones
     """
@@ -68,38 +69,13 @@ def analyze_job_description(job_description: JobDescription):
     Analyze a job description and extract key requirements/technologies
     """
     try:
-        # Simple keyword extraction for now
-        # In production, you'd want to use NLP techniques
+        gemini_service = GeminiService()
+        analysis = gemini_service.job_description_parser(job_description.description)
         
-        description_text = f"{job_description.description} {job_description.requirements or ''}".lower()
-        
-        # Common technology keywords
-        tech_keywords = [
-            'python', 'javascript', 'java', 'react', 'node.js', 'django', 'flask',
-            'fastapi', 'sql', 'postgresql', 'mysql', 'mongodb', 'docker', 'kubernetes',
-            'aws', 'azure', 'gcp', 'git', 'linux', 'html', 'css', 'typescript',
-            'angular', 'vue', 'spring', 'microservices', 'rest api', 'graphql',
-            'machine learning', 'data science', 'tensorflow', 'pytorch', 'pandas'
-        ]
-        
-        found_technologies = [tech for tech in tech_keywords if tech in description_text]
-        
-        # Extract experience level keywords
-        experience_keywords = ['junior', 'senior', 'mid-level', 'lead', 'principal', 'architect']
-        experience_level = next((exp for exp in experience_keywords if exp in description_text), 'not specified')
-        
-        # Extract soft skills
-        soft_skills = ['communication', 'teamwork', 'leadership', 'problem-solving', 'analytical']
-        found_soft_skills = [skill for skill in soft_skills if skill in description_text]
-        
-        return {
-            "job_title": job_description.title,
-            "company": job_description.company,
-            "required_technologies": found_technologies,
-            "experience_level": experience_level,
-            "soft_skills": found_soft_skills,
-            "analysis_summary": f"This {experience_level} position requires experience with {', '.join(found_technologies[:5])} and emphasizes {', '.join(found_soft_skills[:3])}."
-        }
+        if not analysis:
+            raise HTTPException(status_code=500, detail="Failed to analyze job description")
+
+        return analysis
         
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error analyzing job description: {str(e)}")

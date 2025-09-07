@@ -36,6 +36,7 @@ class GeminiService:
     The response should adhere to the following:
     - Only the json response should be returned no other data.
     - The 3 liner will be used in a CV so format it to be unambiguous and impactful and straight to the point (no long lines).
+    - never mention the technologies in the three liner.
     - The detailed paragraph should provide a comprehensive overview of the project.
     - in the three liner don't include the project name start directly.
     - The technologies should be a list of key technologies used in the project (e.g., React, Node.js).
@@ -53,6 +54,39 @@ class GeminiService:
 """
         
         response = self.precise_model.generate_content([prompt])
+        json_response = self._extract_json(response.text)
+
+        return json_response
+
+    def job_description_parser(self, job_description: str) -> dict:
+        """
+        Parse job description to extract title, company, description, and requirements
+        """
+        prompt = f"""You will be given a job description text.
+    Extract the following fields and return them in a JSON format:
+    - title: Job title
+    - company: Company name
+    - required_technologies: List of key technologies required
+    - experience_level: Experience level required (e.g., Junior, Senior)
+    - soft_skills: List of important soft skills mentioned
+    - analysis_summary: A brief summary of the job highlighting main points    
+    - requirements: Key requirements or qualifications
+    Your response should be in the following format:
+    {{
+        "title": "Job Title",
+        "company": "Company Name",
+        "required_technologies": ["Tech 1", "Tech 2", ...],
+        "experience_level": "Experience Level",
+        "soft_skills": ["Skill 1", "Skill 2", ...],
+        "analysis_summary": "Brief summary here",
+        "requirements": "Key requirements here"
+    }}
+
+    Job description:
+    {job_description}
+    """
+
+        response = self.fast_model.generate_content([prompt])
         json_response = self._extract_json(response.text)
 
         return json_response

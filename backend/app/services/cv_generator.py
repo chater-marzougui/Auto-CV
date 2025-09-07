@@ -39,7 +39,6 @@ class CVGenerator:
                     'url': project.url,
                     'three_liner': project.three_liner,
                     'technologies': project.technologies,
-                    'relevance_reason': matched_project.relevance_reason,
                     'stars': project.stars,
                     'forks': project.forks
                 }
@@ -178,7 +177,6 @@ class CVGenerator:
     \begin{itemize}
         \item {{ project.three_liner.replace('\n', '') }}
         \item Technologies: {{ project.technologies|join(', ') }}
-        \item {{ project.relevance_reason }}
         {% if project.stars > 0 %}\item GitHub: {{ project.stars }} stars, {{ project.forks }} forks{% endif %}
     \end{itemize}
     \textit{Repository: \url{{ project.url }}}

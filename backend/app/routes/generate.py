@@ -110,7 +110,6 @@ def generate_full_application(
                 {
                     "name": mp.project.name,
                     "similarity_score": mp.similarity_score,
-                    "relevance_reason": mp.relevance_reason
                 } for mp in matched_projects
             ]
         }

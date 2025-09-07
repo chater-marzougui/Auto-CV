@@ -69,7 +69,7 @@ class EmbeddingService:
         
         print(f"Successfully generated and saved embeddings for {len(projects)} projects")
     
-    def find_matching_projects(self, job_description: JobDescription, top_k: int = 4) -> List[MatchedProject]:
+    def find_matching_projects(self, job_description: str, top_k: int = 4) -> List[MatchedProject]:
         """
         Find projects that best match a job description
         """
@@ -81,13 +81,8 @@ class EmbeddingService:
             if not self.index:
                 raise RuntimeError("No embeddings found. Please scrape GitHub repositories first.")
             
-            # Prepare job description text
-            job_text = f"{job_description.title} {job_description.company} {job_description.description}"
-            if job_description.requirements:
-                job_text += f" {job_description.requirements}"
-            
             # Generate embedding for job description
-            job_embedding = self.model.encode([job_text], convert_to_tensor=False)
+            job_embedding = self.model.encode([job_description], convert_to_tensor=False)
             faiss.normalize_L2(job_embedding)
             
             # Search for similar projects
@@ -102,13 +97,9 @@ class EmbeddingService:
                 project_name = self.project_mapping[idx]
                 project = self.embeddings_cache['projects'][project_name]
                 
-                # Generate relevance reason
-                relevance_reason = self._generate_relevance_reason(job_description, project)
-                
                 matched_project = MatchedProject(
                     project=project,
-                    similarity_score=float(score),
-                    relevance_reason=relevance_reason
+                    similarity_score=float(score)
                 )
                 
                 matched_projects.append(matched_project)
@@ -118,40 +109,7 @@ class EmbeddingService:
         except Exception as e:
             print(f"Error finding matching projects: {str(e)}")
             raise e
-    
-    def _generate_relevance_reason(self, job_description: JobDescription, project: Project) -> str:
-        """
-        Generate a reason why this project is relevant to the job
-        """
-        try:
-            # Extract key technologies from job description
-            job_text = f"{job_description.description} {job_description.requirements or ''}".lower()
-            
-            # Find common technologies
-            common_techs = []
-            for tech in project.technologies:
-                if tech.lower() in job_text:
-                    common_techs.append(tech)
-            
-            if common_techs:
-                tech_str = ", ".join(common_techs[:3])
-                reason = f"Demonstrates experience with {tech_str}"
-            else:
-                # Fallback based on project type and job requirements
-                if "web" in job_text and any(tech.lower() in ["javascript", "react", "html", "css"] for tech in project.technologies):
-                    reason = "Shows web development expertise"
-                elif "backend" in job_text and any(tech.lower() in ["python", "java", "node"] for tech in project.technologies):
-                    reason = "Demonstrates backend development skills"
-                elif "data" in job_text and any(tech.lower() in ["python", "pandas", "sql"] for tech in project.technologies):
-                    reason = "Shows data processing capabilities"
-                else:
-                    reason = f"Relevant {project.language} project showcasing technical skills"
-            
-            return reason
-            
-        except Exception:
-            return "Relevant technical project demonstrating software development skills"
-    
+
     def _save_embeddings(self):
         """
         Save embeddings and FAISS index to disk

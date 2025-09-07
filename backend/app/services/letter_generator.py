@@ -48,7 +48,6 @@ class CoverLetterGenerator:
                     'url': project.url,
                     'description': project.three_liner.split('\n')[0].replace('•', '').strip(),
                     'technologies': project.technologies[:5],  # Limit to top 5 technologies
-                    'relevance_reason': matched_project.relevance_reason,
                     'similarity_score': matched_project.similarity_score
                 }
                 template_data['projects'].append(project_data)

@@ -26,7 +26,6 @@ class JobDescription(BaseModel):
 class MatchedProject(BaseModel):
     project: Project
     similarity_score: float
-    relevance_reason: str
 
 class CVGenerationRequest(BaseModel):
     matched_projects: List[MatchedProject]

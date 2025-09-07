@@ -169,9 +169,7 @@ def match_projects_to_job():
         for i, match in enumerate(result, 1):
             project = match["project"]
             score = match["similarity_score"]
-            reason = match["relevance_reason"]
-            print(f"   {i}. {project['name']} (Score: {score:.3f})")
-            print(f"      Reason: {reason}")
+            print(f"{project['name']} (Score: {score:.3f})")
         return result
     else:
         print("❌ Failed to match projects")
@@ -266,8 +264,6 @@ def main():
     
     # Test 5: Match projects
     matched_projects = match_projects_to_job()
-    print(matched_projects)
-    return
     
     # Test 6: Generate application (only if we have matches)
     if matched_projects:

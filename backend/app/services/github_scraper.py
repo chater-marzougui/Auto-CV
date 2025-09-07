@@ -41,12 +41,17 @@ class GitHubScraper:
             repos = user.get_repos(type='owner')  # Only get owned repos, not forks
             
             projects = []
+            existing_projects = self.load_projects()
             print(f"Found {repos.totalCount} repositories")
             for repo in repos:
                 if repo.fork:  # Skip forked repositories
                     continue
                     
                 print(f"Processing repository: {repo.name}")
+                if any(p.name == repo.name and repo.updated_at >= p.updated_at for p in existing_projects):
+                    print(f"Repository {repo.name} is already processed and up-to-date.")
+                    continue
+
                 project = self._process_repository(repo)
                 if project:
                     projects.append(project)
@@ -277,6 +282,9 @@ class GitHubScraper:
         try:
             # Convert projects to dict format for JSON serialization
             projects_data = []
+            existing_projects = self.load_projects()
+            projects.extend(p for p in existing_projects if p.name not in {proj.name for proj in projects})
+            
             for project in projects:
                 project_dict = project.dict()
                 # Convert datetime objects to ISO format strings
