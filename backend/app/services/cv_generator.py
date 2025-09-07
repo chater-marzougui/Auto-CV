@@ -4,6 +4,7 @@ import tempfile
 import re
 from app.models.project import CVGenerationRequest
 import shutil
+import time
 
 class CVGenerator:
     def __init__(self):
@@ -21,12 +22,18 @@ class CVGenerator:
         for matched_project in matched_projects:
             project = matched_project.project
             
-            # Format technologies as comma-separated string
+            # Format technologies as comma-separated string and escape LaTeX special chars
             tech_str = ", ".join(project.technologies) if project.technologies else ""
+            tech_str = self._escape_latex(tech_str)
+            
+            # Escape LaTeX special characters in project data
+            project_name = self._escape_latex(project.name)
+            project_description = self._escape_latex(project.three_liner)
+            project_url = project.url  # URLs typically don't need escaping in href
             
             # Generate LaTeX for each project
-            project_latex = f"""\\item {{\\href{{{project.url}}}{{\\color{{bgcol}}\\faGithub{{ Code Link}}}} \\textbf{{{project.name}}}
-{project.three_liner}
+            project_latex = f"""\\item {{\\href{{{project_url}}}{{\\color{{bgcol}}\\faGithub{{ Code Link}}}} \\textbf{{{project_name}}}
+{project_description}
 \\textit{{({tech_str})}}}}
 \\vspace{{5px}}"""
             
@@ -63,21 +70,20 @@ class CVGenerator:
             
             # Replace the projects content
             latex_content = re.sub(pattern, replace_projects, latex_content, flags=re.DOTALL)
+            
             # Write the modified LaTeX content to test.tex for inspection
             with open(os.path.join(self.templates_dir, "test.tex"), 'w', encoding='utf-8') as f:
                 f.write(latex_content)
             
             # Generate PDF
             pdf_path = self._compile_latex(latex_content, "cv")
-            print("CV generated at:", pdf_path) 
             return pdf_path
             
         except Exception as e:
             raise RuntimeError(f"Error generating CV: {str(e)}")
     
     def _compile_latex(self, latex_content, output_name):
-        """Compile LaTeX content to PDF"""
-        # This method needs to be implemented based on your LaTeX compilation setup
+        """Compile LaTeX content to PDF with improved error handling for MiKTeX"""
         try:
             with tempfile.TemporaryDirectory() as temp_dir:
                 tex_file = os.path.join(temp_dir, f"{output_name}.tex")
@@ -88,22 +94,81 @@ class CVGenerator:
                 with open(tex_file, 'w', encoding='utf-8') as f:
                     f.write(latex_content)
                 
-                # Compile LaTeX (requires pdflatex to be installed)
-                result = subprocess.run(
-                    ['pdflatex', '-interaction=nonstopmode', tex_file],
+                print("Compiling LaTeX...")
+                
+                # Set environment variables for MiKTeX
+                env = os.environ.copy()
+                env['MIKTEX_ENABLEINSTALLER'] = 'yes'  # Allow automatic package installation
+                env['TEXMFHOME'] = temp_dir  # Use temp directory for cache
+                
+                max_tries = 3  # Reduced from 5 since we have better error handling
+                
+                for attempt in range(max_tries):
+                    print(f"Compilation attempt {attempt + 1}/{max_tries}")
+                    
+                    # Add a small delay between attempts to let MiKTeX settle
+                    if attempt > 0:
+                        time.sleep(2)
+                    
+                    # Run pdflatex with improved settings for MiKTeX
+                    result = subprocess.run([
+                        'pdflatex',
+                        '-interaction=nonstopmode',
+                        '-halt-on-error',
+                        '-file-line-error',
+                        '-synctex=1',
+                        tex_file
+                    ], 
                     cwd=temp_dir,
                     capture_output=True,
-                    text=True
-                )
+                    text=True,
+                    env=env,
+                    timeout=60  # 60 second timeout
+                    )
+                    
+                    if result.returncode == 0:
+                        print("LaTeX compilation successful!")
+                        break
+                    else:
+                        print(f"LaTeX compilation failed on attempt {attempt + 1}")
+                        print(f"Return code: {result.returncode}")
+                        print(f"STDOUT: {result.stdout}")
+                        print(f"STDERR: {result.stderr}")
+                        
+                        # Check if it's a missing package issue
+                        if "Package" in result.stderr and "not found" in result.stderr:
+                            print("Detected missing package issue - MiKTeX should auto-install")
+                            continue
+                        
+                        # Check if it's a font cache issue
+                        if "font" in result.stderr.lower() or "cache" in result.stderr.lower():
+                            print("Detected font/cache issue - clearing and retrying")
+                            # Try to refresh font cache
+                            subprocess.run(['fc-cache', '-f'], capture_output=True)
+                            continue
+                        
+                        if attempt == max_tries - 1:
+                            # Last attempt failed, provide detailed error
+                            error_msg = f"""LaTeX compilation failed after {max_tries} attempts.
+Return code: {result.returncode}
+STDERR: {result.stderr}
+STDOUT: {result.stdout}
 
-                if result.returncode != 0:
-                    raise RuntimeError(f"LaTeX compilation failed: {result.stderr}")
+Check the test.tex file in {self.templates_dir} for syntax issues."""
+                            raise RuntimeError(error_msg)
+                
+                # Check if PDF was actually created
+                if not os.path.exists(pdf_file):
+                    raise RuntimeError("PDF file was not created despite successful compilation")
                 
                 # Copy output PDF to output directory
                 shutil.copy2(pdf_file, output_pdf)
+                print(f"PDF successfully created: {output_pdf}")
                 
                 return output_pdf
                 
+        except subprocess.TimeoutExpired:
+            raise RuntimeError("LaTeX compilation timed out - this may indicate an infinite loop or hanging process")
         except Exception as e:
             raise RuntimeError(f"PDF compilation error: {str(e)}")
 
@@ -111,7 +176,11 @@ class CVGenerator:
         """
         Escape special LaTeX characters
         """
+        if not text:
+            return ""
+            
         latex_special_chars = {
+            '\\': r'\textbackslash{}',  # Must be first to avoid double escaping
             '&': r'\&',
             '%': r'\%',
             '$': r'\$',
@@ -121,7 +190,6 @@ class CVGenerator:
             '~': r'\textasciitilde{}',
             '{': r'\{',
             '}': r'\}',
-            '\\': r'\textbackslash{}'
         }
         
         for char, escape in latex_special_chars.items():
