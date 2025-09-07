@@ -5,7 +5,6 @@ Run this after starting the server to test all functionality
 """
 
 import requests
-import time
 from typing import Dict, Any
 
 # Configuration
