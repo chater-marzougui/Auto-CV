@@ -1,131 +1,135 @@
-import { useState, useEffect } from "react"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { Badge } from "@/components/ui/badge"
-import { Loader2, Github, Star, GitFork, RefreshCw } from "lucide-react"
-import { useToast } from "@/hooks/use-toast"
-import { config } from "@/config"
+import { useState, useEffect } from "react";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { Loader2, Github, Star, GitFork, RefreshCw } from "lucide-react";
+import { config } from "@/config";
+import { toast } from "sonner";
 
 interface Project {
-  name: string
-  url: string
-  description: string
-  three_liner: string
-  detailed_paragraph: string
-  technologies: string[]
-  stars: number
-  forks: number
-  language: string
-  created_at: string
-  updated_at: string
+  name: string;
+  url: string;
+  description: string;
+  three_liner: string;
+  detailed_paragraph: string;
+  technologies: string[];
+  stars: number;
+  forks: number;
+  language: string;
+  created_at: string;
+  updated_at: string;
 }
 
 export function ProjectManagement() {
-  const [projects, setProjects] = useState<Project[]>([])
-  const [githubUsername, setGithubUsername] = useState("")
-  const [isLoading, setIsLoading] = useState(false)
-  const [isScraping, setIsScraping] = useState(false)
-  const [isRefreshing, setIsRefreshing] = useState(false)
-  const { toast } = useToast()
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [githubUsername, setGithubUsername] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [isScraping, setIsScraping] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   useEffect(() => {
-    loadProjects()
-  }, [])
+    loadProjects();
+  }, []);
 
   const loadProjects = async () => {
-    setIsLoading(true)
+    setIsLoading(true);
     try {
-      const response = await fetch(`${config.api.baseUrl}${config.api.endpoints.projects}`)
+      const response = await fetch(
+        `${config.api.baseUrl}${config.api.endpoints.projects}`
+      );
       if (response.ok) {
-        const data = await response.json()
-        setProjects(data.projects || [])
+        const data = await response.json();
+        setProjects(data.projects || []);
       }
     } catch (error) {
-      console.error("Failed to load projects:", error)
+      console.error("Failed to load projects:", error);
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }
+  };
 
   const scrapeGithub = async () => {
     if (!githubUsername.trim()) {
-      toast({
-        title: "Error",
+      toast.error("Error", {
         description: "Please enter a GitHub username",
-        variant: "destructive",
-      })
-      return
+      });
+      return;
     }
 
-    setIsScraping(true)
+    setIsScraping(true);
     try {
-      const response = await fetch(`${config.api.baseUrl}${config.api.endpoints.scrapeGithub}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ github_username: githubUsername }),
-      })
+      const response = await fetch(
+        `${config.api.baseUrl}${config.api.endpoints.scrapeGithub}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ github_username: githubUsername }),
+        }
+      );
 
-      if (!response.ok) throw new Error("Failed to scrape GitHub")
+      if (!response.ok) throw new Error("Failed to scrape GitHub");
 
-      const result = await response.json()
+      const result = await response.json();
 
-      toast({
-        title: "Success",
-        description: `Scraped ${result.projects_count} projects successfully`,
-      })
+      toast.success(`Scraped ${result.projects_count} projects successfully`);
 
       // Reload projects after scraping
-      await loadProjects()
+      await loadProjects();
     } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to scrape GitHub repositories" + (error instanceof Error ? `: ${error.message}` : ""),
-        variant: "destructive",
-      })
+      toast.error("Failed to scrape GitHub repositories", {
+        description: error instanceof Error ? `: ${error.message}` : "",
+      });
     } finally {
-      setIsScraping(false)
+      setIsScraping(false);
     }
-  }
+  };
 
   const refreshEmbeddings = async () => {
-    setIsRefreshing(true)
+    setIsRefreshing(true);
     try {
-      const response = await fetch(`${config.api.baseUrl}${config.api.endpoints.refreshEmbeddings}`, {
-        method: "POST",
-      })
+      const response = await fetch(
+        `${config.api.baseUrl}${config.api.endpoints.refreshEmbeddings}`,
+        {
+          method: "POST",
+        }
+      );
 
-      if (!response.ok) throw new Error("Failed to refresh embeddings")
-
-      toast({
-        title: "Success",
-        description: "Embeddings refreshed successfully",
-      })
+      if (!response.ok) throw new Error("Failed to refresh embeddings");
+      toast.success("Embeddings refreshed successfully");
     } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to refresh embeddings" + (error instanceof Error ? `: ${error.message}` : ""),
-        variant: "destructive",
-      })
+      toast.error("Failed to refresh embeddings", {
+        description: error instanceof Error ? `: ${error.message}` : "",
+      });
     } finally {
-      setIsRefreshing(false)
+      setIsRefreshing(false);
     }
-  }
+  };
 
   if (isLoading && projects.length === 0) {
     return (
       <div className="flex items-center justify-center h-full">
         <Loader2 className="h-8 w-8 animate-spin" />
       </div>
-    )
+    );
   }
 
   return (
     <div className="flex flex-col h-full">
       {/* Header */}
       <div className="border-b border-border p-6">
-        <h1 className="font-heading text-2xl font-bold text-foreground">Project Management</h1>
-        <p className="text-muted-foreground mt-1">Manage your GitHub repositories and project embeddings</p>
+        <h1 className="font-heading text-2xl font-bold text-foreground">
+          Project Management
+        </h1>
+        <p className="text-muted-foreground mt-1">
+          Manage your GitHub repositories and project embeddings
+        </p>
       </div>
 
       {/* Content */}
@@ -134,7 +138,9 @@ export function ProjectManagement() {
         <Card>
           <CardHeader>
             <CardTitle>GitHub Integration</CardTitle>
-            <CardDescription>Scrape repositories from your GitHub profile</CardDescription>
+            <CardDescription>
+              Scrape repositories from your GitHub profile
+            </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex gap-2">
@@ -144,7 +150,10 @@ export function ProjectManagement() {
                 onChange={(e) => setGithubUsername(e.target.value)}
                 className="flex-1"
               />
-              <Button onClick={scrapeGithub} disabled={isScraping || !githubUsername.trim()}>
+              <Button
+                onClick={scrapeGithub}
+                disabled={isScraping || !githubUsername.trim()}
+              >
                 {isScraping ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -160,7 +169,12 @@ export function ProjectManagement() {
             </div>
 
             <div className="flex gap-2">
-              <Button variant="outline" onClick={refreshEmbeddings} disabled={isRefreshing || projects.length === 0}>
+              <Button
+                variant="outline"
+                onClick={refreshEmbeddings}
+                disabled={isRefreshing || projects.length === 0}
+                className="cursor-pointer"
+              >
                 {isRefreshing ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -174,15 +188,13 @@ export function ProjectManagement() {
                 )}
               </Button>
 
-              <Button variant="outline" onClick={loadProjects} disabled={isLoading}>
-                {isLoading ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Loading...
-                  </>
-                ) : (
-                  "Reload Projects"
-                )}
+              <Button
+                variant="outline"
+                onClick={loadProjects}
+                disabled={isLoading}
+                className="cursor-pointer"
+              >
+                Reload Projects
               </Button>
             </div>
           </CardContent>
@@ -191,7 +203,9 @@ export function ProjectManagement() {
         {/* Projects Grid */}
         <div className="space-y-4">
           <div className="flex items-center justify-between">
-            <h2 className="font-heading text-xl font-semibold">Your Projects ({projects.length})</h2>
+            <h2 className="font-heading text-xl font-semibold">
+              Your Projects ({projects.length})
+            </h2>
           </div>
 
           {projects.length === 0 ? (
@@ -210,13 +224,17 @@ export function ProjectManagement() {
                 <Card key={index} className="hover:shadow-md transition-shadow">
                   <CardHeader className="pb-3">
                     <div className="flex items-start justify-between">
-                      <CardTitle className="text-lg font-medium truncate">{project.name}</CardTitle>
+                      <CardTitle className="text-lg font-medium truncate">
+                        {project.name}
+                      </CardTitle>
                       <Badge variant="outline" className="ml-2 shrink-0">
                         {project.language || "Unknown"}
                       </Badge>
                     </div>
                     <CardDescription className="line-clamp-2">
-                      {project.three_liner || project.description || "No description available"}
+                      {project.three_liner ||
+                        project.description ||
+                        "No description available"}
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-3">
@@ -231,23 +249,56 @@ export function ProjectManagement() {
                       </div>
                     </div>
 
-                    {project.technologies && project.technologies.length > 0 && (
-                      <div className="flex flex-wrap gap-1">
-                        {project.technologies.slice(0, 3).map((tech, techIndex) => (
-                          <Badge key={techIndex} variant="secondary" className="text-xs">
-                            {tech}
-                          </Badge>
-                        ))}
-                        {project.technologies.length > 3 && (
-                          <Badge variant="secondary" className="text-xs">
-                            +{project.technologies.length - 3}
-                          </Badge>
-                        )}
-                      </div>
-                    )}
+                    {project.technologies &&
+                      project.technologies.length > 0 && (
+                        <div className="flex flex-wrap gap-1 items-center">
+                          {project.technologies
+                            .slice(0, 3)
+                            .map((tech, techIndex) => (
+                              <Badge
+                                key={techIndex}
+                                variant="secondary"
+                                className="text-xs"
+                              >
+                                {tech}
+                              </Badge>
+                            ))}
+                          {project.technologies.length > 3 && (
+                            <div className="relative group">
+                              <Badge
+                                variant="secondary"
+                                className="text-xs cursor-pointer select-none"
+                              >
+                                +{project.technologies.length - 3}
+                              </Badge>
+                              <div className="absolute left-0 z-10 mt-1 hidden group-hover:flex flex-col bg-popover border border-border rounded shadow-lg p-2 min-w-max">
+                                {project.technologies
+                                  .slice(3)
+                                  .map((tech, idx) => (
+                                    <span
+                                      key={idx}
+                                      className="text-xs px-2 py-1 rounded hover:bg-muted"
+                                    >
+                                      {tech}
+                                    </span>
+                                  ))}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      )}
 
-                    <Button asChild variant="outline" size="sm" className="w-full bg-transparent">
-                      <a href={project.url} target="_blank" rel="noopener noreferrer">
+                    <Button
+                      asChild
+                      variant="outline"
+                      size="sm"
+                      className="w-full bg-transparent text-blue-400 hover:text-blue-500"
+                    >
+                      <a
+                        href={project.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
                         <Github className="mr-2 h-4 w-4" />
                         View on GitHub
                       </a>
@@ -260,5 +311,5 @@ export function ProjectManagement() {
         </div>
       </div>
     </div>
-  )
+  );
 }

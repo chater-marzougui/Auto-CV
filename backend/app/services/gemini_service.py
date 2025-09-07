@@ -25,22 +25,34 @@ class GeminiService:
     detailed: A detailed paragraph summarizing the project
     three_liner: A concise 3-liner summary of the project
     technologies: A list of key technologies used in the project
+    bad_readme: A boolean indicating if the readme content is too short or not useful for understanding the project (true/false)
 
     Your response for each question should be in the following format:
     {{
         "detailed": "Detailed paragraph here",
         "three_liner": "3-liner paragraph (no return to line) summary here it should be a short and straight to the point",
-        "technologies": ["Technology 1", "Technology 2", ...]
+        "technologies": ["Technology 1", "Technology 2", ...],
+        "bad_readme": true/false
     }}
 
     The response should adhere to the following:
+    - Ensure the JSON is properly formatted.
     - Only the json response should be returned no other data.
     - The 3 liner will be used in a CV so format it to be unambiguous and impactful and straight to the point (no long lines).
     - never mention the technologies in the three liner.
     - The detailed paragraph should provide a comprehensive overview of the project.
     - in the three liner don't include the project name start directly.
     - The technologies should be a list of key technologies used in the project (e.g., React, Node.js).
-    - Ensure the JSON is properly formatted.
+    - The technologies should be relevant to the project and not generic.
+    - The technologies should be only the main ones that are critical to the project with no examples.
+    - Examples of absolutely not acceptable technologies: "JSON", "LLAMA-7b", "Raspberry Pi",
+    "Sensors", "Ultra Sonic", "Windows encryption", "Ngrok", "LocalTunnel".
+    - Examples of acceptable technologies: "React", "Node.js", "Express", "PostgreSQL", "Docker", "Kubernetes", "Flask", "Django", "TensorFlow", "PyTorch".
+    - Technologies should be formatted in camel case or proper case (e.g., "Node.js", "React", "PostgreSQL").
+    - Technologies should not include versions, examples, or long names.
+    - Formatting examples of not acceptable technologies: "Node.js v14 -> Node.js", "React 17 -> React", "PostgreSQL database -> PostgreSQL", "Docker containerization -> Docker", "Long Short-Term Memory (LSTM) -> LSTM".
+    - If the readme is too short or not useful, set "bad_readme" to true.
+    - If "bad_readme" is true, the "detailed" and "three_liner" can be generic but still relevant to the project.
     
     Here is the repository information:
     Repository Name: {repo_name}

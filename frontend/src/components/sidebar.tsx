@@ -58,10 +58,10 @@ export function Sidebar({ activeTab, onTabChange }: Readonly<SidebarProps>) {
               key={item.id}
               variant={activeTab === item.id ? "default" : "ghost"}
               className={cn(
-                "w-full justify-start gap-3 h-auto p-3",
+                "w-full justify-start gap-3 h-auto p-3 cursor-pointer",
                 activeTab === item.id
-                  ? "bg-sidebar-primary text-sidebar-primary-foreground"
-                  : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                  ? "bg-sidebar-primary hover:bg-sidebar-primary-hover text-sidebar-primary-foreground"
+                  : "bg-sidebar-secondary text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
               )}
               onClick={() => onTabChange(item.id)}
             >

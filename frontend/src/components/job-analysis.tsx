@@ -1,69 +1,77 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Textarea } from "@/components/ui/textarea"
-import { Badge } from "@/components/ui/badge"
-import { Loader2, Send, FileText, Mail } from "lucide-react"
-import { useToast } from "@/hooks/use-toast"
-import { config } from "@/config"
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
+import { Loader2, Send, FileText, Mail } from "lucide-react";
+import { config } from "@/config";
+import { toast } from "sonner";
 
 interface JobAnalysisResult {
-  required_technologies: string[]
-  experience_level: string
-  analysis_summary: string
+  required_technologies: string[];
+  experience_level: string;
+  analysis_summary: string;
   matched_projects: Array<{
-    name: string
-    similarity_score: number
-  }>
-  cv_download_url?: string
-  cover_letter_download_url?: string
+    name: string;
+    similarity_score: number;
+  }>;
+  cv_download_url?: string;
+  cover_letter_download_url?: string;
 }
 
 export function JobAnalysis() {
-  const [jobDescription, setJobDescription] = useState("")
-  const [isAnalyzing, setIsAnalyzing] = useState(false)
-  const [isGenerating, setIsGenerating] = useState(false)
-  const [analysisResult, setAnalysisResult] = useState<JobAnalysisResult | null>(null)
-  const { toast } = useToast()
+  const [jobDescription, setJobDescription] = useState("");
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [analysisResult, setAnalysisResult] =
+    useState<JobAnalysisResult | null>(null);
 
   const analyzeJob = async () => {
     if (!jobDescription.trim()) {
-      toast({
-        title: "Error",
-        description: "Please enter a job description",
-        variant: "destructive",
-      })
-      return
+      toast.error("Please enter a job description");
+      return;
     }
 
-    setIsAnalyzing(true)
+    setIsAnalyzing(true);
     try {
-      const response = await fetch(`${config.api.baseUrl}${config.api.endpoints.analyzeJob}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          title: "Job Position",
-          company: "Company",
-          description: jobDescription,
-        }),
-      })
+      const response = await fetch(
+        `${config.api.baseUrl}${config.api.endpoints.analyzeJob}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            title: "Job Position",
+            company: "Company",
+            description: jobDescription,
+          }),
+        }
+      );
 
-      if (!response.ok) throw new Error("Failed to analyze job")
+      if (!response.ok) throw new Error("Failed to analyze job");
 
-      const analysis = await response.json()
+      const analysis = await response.json();
 
       // Also get matching projects
-      const matchResponse = await fetch(`${config.api.baseUrl}${config.api.endpoints.matchProjects}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ job_description: jobDescription }),
-      })
+      const matchResponse = await fetch(
+        `${config.api.baseUrl}${config.api.endpoints.matchProjects}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ job_description: jobDescription }),
+        }
+      );
 
-      let matchedProjects = []
+      let matchedProjects = [];
       if (matchResponse.ok) {
-        matchedProjects = await matchResponse.json()
+        matchedProjects = await matchResponse.json();
       }
 
       setAnalysisResult({
@@ -72,57 +80,58 @@ export function JobAnalysis() {
           name: mp.project.name,
           similarity_score: mp.similarity_score,
         })),
-      })
+      });
 
-      toast({
-        title: "Analysis Complete",
+      toast.success("Analysis Complete", {
         description: "Job description analyzed successfully",
-      })
+      });
     } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to analyze job description" + (error instanceof Error ? `: ${error.message}` : ""),
-        variant: "destructive",
-      })
+      toast.error("Failed to analyze job description", {
+        description: error instanceof Error ? `: ${error.message}` : "",
+      });
     } finally {
-      setIsAnalyzing(false)
+      setIsAnalyzing(false);
     }
-  }
+  };
 
   const generateApplication = async () => {
-    setIsGenerating(true)
+    setIsGenerating(true);
     try {
-      const response = await fetch(`${config.api.baseUrl}${config.api.endpoints.generateApplication}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          job_description: jobDescription,
-          personal_info: {
-            first_name: "John",
-            last_name: "Doe",
-            email: "john.doe@example.com",
-            phone: "+1-555-0123",
-            address: "123 Tech Street",
-            city: "San Francisco",
-            postal_code: "94105",
-            title: "Software Developer",
-            summary: "Experienced software developer with expertise in modern web technologies.",
-            skills: {
-              "Programming Languages": ["Python", "JavaScript", "TypeScript"],
-              "Web Frameworks": ["React", "FastAPI", "Next.js"],
-              Databases: ["PostgreSQL", "MongoDB"],
-              Tools: ["Docker", "Git", "AWS"],
+      const response = await fetch(
+        `${config.api.baseUrl}${config.api.endpoints.generateApplication}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            job_description: jobDescription,
+            personal_info: {
+              first_name: "John",
+              last_name: "Doe",
+              email: "john.doe@example.com",
+              phone: "+1-555-0123",
+              address: "123 Tech Street",
+              city: "San Francisco",
+              postal_code: "94105",
+              title: "Software Developer",
+              summary:
+                "Experienced software developer with expertise in modern web technologies.",
+              skills: {
+                "Programming Languages": ["Python", "JavaScript", "TypeScript"],
+                "Web Frameworks": ["React", "FastAPI", "Next.js"],
+                Databases: ["PostgreSQL", "MongoDB"],
+                Tools: ["Docker", "Git", "AWS"],
+              },
+              experience: [],
+              education: [],
             },
-            experience: [],
-            education: [],
-          },
-          top_k: 4,
-        }),
-      })
+            top_k: 4,
+          }),
+        }
+      );
 
-      if (!response.ok) throw new Error("Failed to generate application")
+      if (!response.ok) throw new Error("Failed to generate application");
 
-      const result = await response.json()
+      const result = await response.json();
 
       setAnalysisResult((prev) =>
         prev
@@ -131,31 +140,31 @@ export function JobAnalysis() {
               cv_download_url: result.cv.download_url,
               cover_letter_download_url: result.cover_letter.download_url,
             }
-          : null,
-      )
+          : null
+      );
 
-      toast({
-        title: "Application Generated",
+      toast.success("Application Generated", {
         description: "CV and cover letter generated successfully",
-      })
+      });
     } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to generate application" + (error instanceof Error ? `: ${error.message}` : ""),
-        variant: "destructive",
-      })
+      toast("Failed to generate application", {
+        description: error instanceof Error ? `: ${error.message}` : "",
+      });
     } finally {
-      setIsGenerating(false)
+      setIsGenerating(false);
     }
-  }
+  };
 
   return (
     <div className="flex flex-col h-full">
       {/* Header */}
       <div className="border-b border-border p-6">
-        <h1 className="font-heading text-2xl font-bold text-foreground">Job Analysis</h1>
+        <h1 className="font-heading text-2xl font-bold text-foreground">
+          Job Analysis
+        </h1>
         <p className="text-muted-foreground mt-1">
-          Paste a job description to analyze requirements and generate tailored applications
+          Paste a job description to analyze requirements and generate tailored
+          applications
         </p>
       </div>
 
@@ -165,7 +174,9 @@ export function JobAnalysis() {
         <Card>
           <CardHeader>
             <CardTitle>Job Description</CardTitle>
-            <CardDescription>Paste the job description you want to apply for</CardDescription>
+            <CardDescription>
+              Paste the job description you want to apply for
+            </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <Textarea
@@ -175,7 +186,11 @@ export function JobAnalysis() {
               className="min-h-[200px]"
             />
             <div className="flex gap-2">
-              <Button onClick={analyzeJob} disabled={isAnalyzing || !jobDescription.trim()} className="flex-1">
+              <Button
+                onClick={analyzeJob}
+                disabled={isAnalyzing || !jobDescription.trim()}
+                className="flex-1"
+              >
                 {isAnalyzing ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -189,7 +204,11 @@ export function JobAnalysis() {
                 )}
               </Button>
               {analysisResult && (
-                <Button onClick={generateApplication} disabled={isGenerating} variant="secondary">
+                <Button
+                  onClick={generateApplication}
+                  disabled={isGenerating}
+                  variant="secondary"
+                >
                   {isGenerating ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -229,12 +248,16 @@ export function JobAnalysis() {
 
                 <div>
                   <h4 className="font-medium mb-2">Experience Level</h4>
-                  <Badge variant="outline">{analysisResult.experience_level}</Badge>
+                  <Badge variant="outline">
+                    {analysisResult.experience_level}
+                  </Badge>
                 </div>
 
                 <div>
                   <h4 className="font-medium mb-2">Summary</h4>
-                  <p className="text-sm text-muted-foreground">{analysisResult.analysis_summary}</p>
+                  <p className="text-sm text-muted-foreground">
+                    {analysisResult.analysis_summary}
+                  </p>
                 </div>
               </CardContent>
             </Card>
@@ -243,14 +266,21 @@ export function JobAnalysis() {
             <Card>
               <CardHeader>
                 <CardTitle>Matched Projects</CardTitle>
-                <CardDescription>Projects from your GitHub that best match this job</CardDescription>
+                <CardDescription>
+                  Projects from your GitHub that best match this job
+                </CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
                   {analysisResult.matched_projects.map((project, index) => (
-                    <div key={index} className="flex items-center justify-between p-3 border border-border rounded-lg">
+                    <div
+                      key={index}
+                      className="flex items-center justify-between p-3 border border-border rounded-lg"
+                    >
                       <span className="font-medium">{project.name}</span>
-                      <Badge variant="secondary">{(project.similarity_score * 100).toFixed(1)}% match</Badge>
+                      <Badge variant="secondary">
+                        {(project.similarity_score * 100).toFixed(1)}% match
+                      </Badge>
                     </div>
                   ))}
                 </div>
@@ -258,11 +288,14 @@ export function JobAnalysis() {
             </Card>
 
             {/* Download Section */}
-            {(analysisResult.cv_download_url || analysisResult.cover_letter_download_url) && (
+            {(analysisResult.cv_download_url ||
+              analysisResult.cover_letter_download_url) && (
               <Card>
                 <CardHeader>
                   <CardTitle>Generated Documents</CardTitle>
-                  <CardDescription>Download your tailored CV and cover letter</CardDescription>
+                  <CardDescription>
+                    Download your tailored CV and cover letter
+                  </CardDescription>
                 </CardHeader>
                 <CardContent>
                   <div className="flex gap-4">
@@ -298,5 +331,5 @@ export function JobAnalysis() {
         )}
       </div>
     </div>
-  )
+  );
 }

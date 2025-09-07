@@ -75,10 +75,24 @@ class GitHubScraper:
         """
         try:
             # Get README content
-            readme_content = self._get_readme_content(repo)
-            if not readme_content or readme_content.startswith("Error"):
+            readme_content, success = self._get_readme_content(repo)
+            if not success:
                 print(f"Skipping repository {repo.name} due to missing or unreadable README")
-                return None
+                return Project(
+                    name=repo.name,
+                    url=repo.html_url,
+                    description=repo.description or "No description provided",
+                    readme_content="",
+                    three_liner="No README available to generate summary.",
+                    detailed_paragraph="No README available to generate detailed paragraph.",
+                    technologies=[],
+                    tree=[],
+                    stars=repo.stargazers_count,
+                    forks=repo.forks_count,
+                    language=repo.language or "Unknown",
+                    created_at=repo.created_at,
+                    updated_at=repo.updated_at
+                )
             # Get repository file tree
             tree = self._get_repo_trees(repo)
                         
@@ -117,7 +131,7 @@ class GitHubScraper:
             print(f"Error processing repository {repo.name}: {str(e)}")
             return None
     
-    def _get_readme_content(self, repo) -> str:
+    def _get_readme_content(self, repo) -> tuple[str, bool]:
         """
         Get README content from repository
         """
@@ -131,11 +145,11 @@ class GitHubScraper:
             for readme_file in readme_files:
                 try:
                     readme = repo.get_contents(readme_file)
-                    return readme.decoded_content.decode('utf-8')
+                    return readme.decoded_content.decode('utf-8'), True
                 except Exception:
                     continue
-                    
-            return "No README found"
+
+            return "No README found", False
 
         except Exception:
             return "Error reading README"
