@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Loader2, Github, Star, GitFork, RefreshCw, AlertCircle } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
+import { config } from "@/config"
 
 interface Project {
   name: string
@@ -35,7 +36,7 @@ export function ProjectManagement() {
   const loadProjects = async () => {
     setIsLoading(true)
     try {
-      const response = await fetch("http://localhost:5000/api/v1/projects")
+      const response = await fetch(`${config.api.baseUrl}${config.api.endpoints.projects}`)
       if (response.ok) {
         const data = await response.json()
         setProjects(data.projects || [])
@@ -59,7 +60,7 @@ export function ProjectManagement() {
 
     setIsScraping(true)
     try {
-      const response = await fetch("http://localhost:5000/api/v1/scrape-github", {
+      const response = await fetch(`${config.api.baseUrl}${config.api.endpoints.scrapeGithub}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ github_username: githubUsername }),
@@ -90,7 +91,7 @@ export function ProjectManagement() {
   const refreshEmbeddings = async () => {
     setIsRefreshing(true)
     try {
-      const response = await fetch("http://localhost:5000/api/v1/refresh-embeddings", {
+      const response = await fetch(`${config.api.baseUrl}${config.api.endpoints.refreshEmbeddings}`, {
         method: "POST",
       })
 

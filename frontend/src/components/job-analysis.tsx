@@ -7,6 +7,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Badge } from "@/components/ui/badge"
 import { Loader2, Send, FileText, Mail } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
+import { config } from "@/config"
 
 interface JobAnalysisResult {
   required_technologies: string[]
@@ -39,7 +40,7 @@ export function JobAnalysis() {
 
     setIsAnalyzing(true)
     try {
-      const response = await fetch("http://localhost:5000/api/v1/analyze-job", {
+      const response = await fetch(`${config.api.baseUrl}${config.api.endpoints.analyzeJob}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -54,7 +55,7 @@ export function JobAnalysis() {
       const analysis = await response.json()
 
       // Also get matching projects
-      const matchResponse = await fetch("http://localhost:5000/api/v1/match-projects", {
+      const matchResponse = await fetch(`${config.api.baseUrl}${config.api.endpoints.matchProjects}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ job_description: jobDescription }),
@@ -91,7 +92,7 @@ export function JobAnalysis() {
   const generateApplication = async () => {
     setIsGenerating(true)
     try {
-      const response = await fetch("http://localhost:5000/api/v1/generate-full-application", {
+      const response = await fetch(`${config.api.baseUrl}${config.api.endpoints.generateApplication}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -268,7 +269,7 @@ export function JobAnalysis() {
                     {analysisResult.cv_download_url && (
                       <Button asChild>
                         <a
-                          href={`http://localhost:5000${analysisResult.cv_download_url}`}
+                          href={`${config.api.baseUrl}${analysisResult.cv_download_url}`}
                           target="_blank"
                           rel="noreferrer"
                         >
@@ -280,7 +281,7 @@ export function JobAnalysis() {
                     {analysisResult.cover_letter_download_url && (
                       <Button asChild variant="secondary">
                         <a
-                          href={`http://localhost:5000${analysisResult.cover_letter_download_url}`}
+                          href={`${config.api.baseUrl}${analysisResult.cover_letter_download_url}`}
                           target="_blank"
                           rel="noreferrer"
                         >
