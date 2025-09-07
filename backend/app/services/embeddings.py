@@ -11,7 +11,8 @@ class EmbeddingService:
         """
         Initialize embedding service with sentence transformer model
         """
-        self.model_name = "all-MiniLM-L6-v2"  # Good balance of speed and quality
+        # self.model_name = "all-MiniLM-L6-v2"  # Good balance of speed and quality
+        self.model_name = "multi-qa-mpnet-base-dot-v1"  # Better for semantic search
         self.model = SentenceTransformer(self.model_name)
         self.data_dir = "app/data"
         self.embeddings_file = os.path.join(self.data_dir, "embeddings.pkl")
@@ -99,9 +100,9 @@ class EmbeddingService:
                 
                 penalty = 0.0
                 if project.no_readme:
-                    penalty += 0.25  # Penalize heavily for no README
+                    penalty = 0.2  # Penalize heavily for no README
                 elif project.bad_readme:
-                    penalty += 0.35
+                    penalty = 0.15
                 
                 matched_project = MatchedProject(
                     project=project,
