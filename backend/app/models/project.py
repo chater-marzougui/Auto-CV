@@ -18,6 +18,7 @@ class Project(BaseModel):
     language: str
     created_at: datetime
     updated_at: datetime
+    hidden_from_search: bool = False  # New field to hide project from similarity search
     
 class JobDescription(BaseModel):
     title: str

@@ -10,13 +10,24 @@ import {
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu";
+import {
   Loader2,
   Github,
   Star,
   GitFork,
   RefreshCw,
   Activity,
-  AlertTriangle
+  AlertTriangle,
+  MoreVertical,
+  EyeOff,
+  Eye,
+  Download
 } from "lucide-react";
 import { config } from "@/config";
 import { toast } from "sonner";
@@ -36,6 +47,7 @@ interface Project {
   language: string;
   created_at: string;
   updated_at: string;
+  hidden_from_search?: boolean;
 }
 
 export default function ProjectManagement() {
@@ -46,6 +58,8 @@ export default function ProjectManagement() {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [showProgress, setShowProgress] = useState(false);
   const [currentClientId, setCurrentClientId] = useState<string | null>(null);
+  const [updatingProjects, setUpdatingProjects] = useState<Set<string>>(new Set());
+  const [togglingVisibility, setTogglingVisibility] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     loadProjects();
@@ -174,6 +188,89 @@ export default function ProjectManagement() {
       });
     }
   }
+
+  const toggleProjectVisibility = async (projectName: string, currentlyHidden: boolean) => {
+    setTogglingVisibility(prev => new Set(prev.add(projectName)));
+    
+    try {
+      const response = await fetch(
+        `${config.api.baseUrl}${config.api.endpoints.toggleProjectVisibility.replace('{projectName}', projectName)}`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ hidden_from_search: !currentlyHidden }),
+        }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.detail || "Failed to update project visibility");
+      }
+
+      // Update the project in local state
+      setProjects(prev => prev.map(p => 
+        p.name === projectName 
+          ? { ...p, hidden_from_search: !currentlyHidden }
+          : p
+      ));
+
+      toast.success(
+        `Project ${!currentlyHidden ? 'hidden from' : 'restored to'} similarity search`,
+        {
+          description: `${projectName} has been ${!currentlyHidden ? 'hidden' : 'restored'}`,
+        }
+      );
+    } catch (error) {
+      toast.error("Failed to update project visibility", {
+        description:
+          error instanceof Error ? error.message : "Unknown error occurred",
+      });
+    } finally {
+      setTogglingVisibility(prev => {
+        const next = new Set(prev);
+        next.delete(projectName);
+        return next;
+      });
+    }
+  };
+
+  const updateSingleProject = async (projectName: string) => {
+    setUpdatingProjects(prev => new Set(prev.add(projectName)));
+    
+    try {
+      const response = await fetch(
+        `${config.api.baseUrl}${config.api.endpoints.updateProject.replace('{projectName}', projectName)}`,
+        {
+          method: "POST",
+        }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.detail || "Failed to start project update");
+      }
+
+      toast.success(`Project update started for ${projectName}`, {
+        description: "The project will be re-scraped and updated in the background",
+      });
+
+      // Reload projects after a short delay to show updated data
+      setTimeout(() => {
+        loadProjects();
+      }, 2000);
+    } catch (error) {
+      toast.error("Failed to start project update", {
+        description:
+          error instanceof Error ? error.message : "Unknown error occurred",
+      });
+    } finally {
+      setUpdatingProjects(prev => {
+        const next = new Set(prev);
+        next.delete(projectName);
+        return next;
+      });
+    }
+  };
 
   if (isLoading && projects.length === 0) {
     return (
@@ -325,9 +422,17 @@ export default function ProjectManagement() {
                 <Card key={index} className="hover:shadow-md transition-shadow">
                   <CardHeader className="pb-3">
                     <div className="flex items-start justify-between">
-                      <CardTitle className="text-lg font-medium truncate">
-                        {project.name}
-                      </CardTitle>
+                      <div className="flex flex-col">
+                        <CardTitle className="text-lg font-medium truncate">
+                          {project.name}
+                        </CardTitle>
+                        {project.hidden_from_search && (
+                          <Badge variant="outline" className="text-xs mt-1 w-fit">
+                            <EyeOff className="h-3 w-3 mr-1" />
+                            Hidden from search
+                          </Badge>
+                        )}
+                      </div>
                       <div className="flex gap-1 ml-2 shrink-0">
                         {getReadmeStatus(project) ? (
                           <Badge variant={getReadmeStatus(project)!.variant} className="text-xs p-2">
@@ -338,6 +443,47 @@ export default function ProjectManagement() {
                             {project.language || "Unknown"}
                           </Badge>
                         )}
+                        
+                        {/* Dropdown Menu */}
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button 
+                              variant="ghost" 
+                              size="sm" 
+                              className="h-8 w-8 p-0"
+                              disabled={updatingProjects.has(project.name) || togglingVisibility.has(project.name)}
+                            >
+                              <MoreVertical className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem
+                              onClick={() => toggleProjectVisibility(project.name, project.hidden_from_search || false)}
+                              disabled={togglingVisibility.has(project.name)}
+                            >
+                              {togglingVisibility.has(project.name) ? (
+                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                              ) : project.hidden_from_search ? (
+                                <Eye className="mr-2 h-4 w-4" />
+                              ) : (
+                                <EyeOff className="mr-2 h-4 w-4" />
+                              )}
+                              {project.hidden_from_search ? 'Show in search' : 'Hide from search'}
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem
+                              onClick={() => updateSingleProject(project.name)}
+                              disabled={updatingProjects.has(project.name)}
+                            >
+                              {updatingProjects.has(project.name) ? (
+                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                              ) : (
+                                <Download className="mr-2 h-4 w-4" />
+                              )}
+                              Update project
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       </div>
                     </div>
                     <CardDescription className="line-clamp-2">

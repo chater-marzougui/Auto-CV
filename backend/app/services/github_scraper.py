@@ -528,6 +528,74 @@ class GitHubScraper:
             print(f"Error loading projects: {str(e)}")
             return []
     
+    def save_projects(self, projects: List[Project]):
+        """
+        Public method to save projects to JSON file
+        """
+        try:
+            # Convert projects to dict format for JSON serialization
+            projects_data = []
+            
+            for project in projects:
+                project_dict = project.dict()
+                # Convert datetime objects to ISO format strings
+                project_dict['created_at'] = project.created_at.isoformat()
+                project_dict['updated_at'] = project.updated_at.isoformat()
+                projects_data.append(project_dict)
+            
+            with open(self.projects_file, 'w', encoding='utf-8') as f:
+                f.write(json.dumps(projects_data, indent=2, ensure_ascii=False))
+                
+            print(f"Saved {len(projects)} projects to {self.projects_file}")
+            
+        except Exception as e:
+            print(f"Error saving projects: {str(e)}")
+            raise e
+    
+    async def update_single_project(self, github_username: str, repo_name: str):
+        """
+        Update a single project by re-scraping and re-processing it
+        """
+        try:
+            log_progress(self.logger, f"Starting single project update for {repo_name}", repo=repo_name)
+            
+            # Run GitHub API calls in executor to avoid blocking
+            user = await self._run_in_executor(self.github.get_user, github_username)
+            repo = await self._run_in_executor(user.get_repo, repo_name)
+            
+            # Process the single repository
+            project = await self._run_in_executor(self._process_repository, repo)
+            
+            if project:
+                # Load existing projects
+                existing_projects = self.load_projects()
+                
+                # Find and replace the existing project or add if new
+                project_index = next((i for i, p in enumerate(existing_projects) if p.name == project.name), None)
+                
+                if project_index is not None:
+                    # Preserve the hidden_from_search setting if it exists
+                    existing_hidden = getattr(existing_projects[project_index], 'hidden_from_search', False)
+                    project.hidden_from_search = existing_hidden
+                    existing_projects[project_index] = project
+                else:
+                    existing_projects.append(project)
+                
+                # Save updated projects
+                self.save_projects(existing_projects)
+                
+                # Refresh embeddings for all projects
+                embedding_service = EmbeddingService()
+                embedding_service.generate_embeddings_for_projects(existing_projects)
+                
+                log_success(self.logger, f"Successfully updated project {repo_name}", repo=repo_name)
+            else:
+                log_error(self.logger, f"Failed to process project {repo_name}", repo=repo_name)
+                
+        except Exception as e:
+            log_error(self.logger, f"Error updating single project {repo_name}: {e}", repo=repo_name, exc_info=True)
+            raise e
+    
     def cleanup(self):
         """Clean up resources"""
         if hasattr(self, 'executor'):

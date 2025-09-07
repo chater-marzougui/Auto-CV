@@ -158,17 +158,24 @@ class EmbeddingService:
         return min(score, 2.0)  # Cap at 2.0
     
     def generate_embeddings_for_projects(self, projects: List[Project]):
-        """Generate enhanced embeddings for all projects"""
-        print(f"Generating enhanced embeddings for {len(projects)} projects...")
+        """Generate enhanced embeddings for all projects (excluding hidden ones)"""
+        # Filter out hidden projects
+        visible_projects = [p for p in projects if not getattr(p, 'hidden_from_search', False)]
+        
+        print(f"Generating enhanced embeddings for {len(visible_projects)} visible projects (out of {len(projects)} total)...")
         
         # Prepare enhanced texts for embedding
         project_texts = []
         project_names = []
         
-        for project in projects:
+        for project in visible_projects:
             weighted_text = self._create_weighted_text(project)
             project_texts.append(weighted_text)
             project_names.append(project.name)
+        
+        if not project_texts:
+            print("No visible projects to generate embeddings for")
+            return
         
         # Generate embeddings
         embeddings = self.model.encode(project_texts, convert_to_tensor=False)
@@ -189,10 +196,10 @@ class EmbeddingService:
         # Cache embeddings and projects with additional metadata
         self.embeddings_cache = {
             'embeddings': embeddings,
-            'projects': {project.name: project for project in projects},
+            'projects': {project.name: project for project in visible_projects},
             'project_names': project_names,
-            'recency_scores': {project.name: self._calculate_recency_score(project) for project in projects},
-            'quality_scores': {project.name: self._calculate_quality_score(project) for project in projects}
+            'recency_scores': {project.name: self._calculate_recency_score(project) for project in visible_projects},
+            'quality_scores': {project.name: self._calculate_quality_score(project) for project in visible_projects}
         }
         
         # Save to disk
@@ -299,6 +306,10 @@ class EmbeddingService:
                 
                 project_name = self.project_mapping[idx]
                 project = self.embeddings_cache['projects'][project_name]
+                
+                # Skip hidden projects
+                if getattr(project, 'hidden_from_search', False):
+                    continue
                 
                 # Calculate component scores
                 recency_score = self.embeddings_cache['recency_scores'][project_name]
