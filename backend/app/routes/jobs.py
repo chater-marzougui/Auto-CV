@@ -112,6 +112,7 @@ def refresh_embeddings():
         if not projects:
             raise HTTPException(status_code=404, detail="No projects found. Please scrape GitHub repositories first.")
         
+        # Only initialize embedding service if we have projects
         embedding_service = EmbeddingService()
         embedding_service.generate_embeddings_for_projects(projects)
         
@@ -143,9 +144,11 @@ def toggle_project_visibility(project_name: str, visibility_update: ProjectVisib
         # Save the updated projects
         scraper.save_projects(projects)
         
-        # Refresh embeddings to exclude/include the project
-        embedding_service = EmbeddingService()
-        embedding_service.generate_embeddings_for_projects(projects)
+        # Refresh embeddings to exclude/include the project (only if there are visible projects)
+        visible_projects = [p for p in projects if not getattr(p, 'hidden_from_search', False)]
+        if visible_projects:
+            embedding_service = EmbeddingService()
+            embedding_service.generate_embeddings_for_projects(projects)
         
         return {
             "message": f"Project '{project_name}' visibility updated successfully",

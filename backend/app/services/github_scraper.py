@@ -24,8 +24,8 @@ class GitHubScraper:
         """
         self.github_token = github_token or os.getenv("GITHUB_TOKEN")
         self.github = Github(self.github_token) if self.github_token else Github()
-        self.embedding_service = EmbeddingService()
-        self.gemini_service = GeminiService()
+        self._embedding_service = None
+        self._gemini_service = None
         self.data_dir = "app/data"
         self.projects_file = os.path.join(self.data_dir, "projects.json")
         self.websocket_manager = websocket_manager
@@ -41,6 +41,20 @@ class GitHubScraper:
         os.makedirs(self.data_dir, exist_ok=True)
         
         log_success(self.logger, "GitHubScraper initialized", f"client_id: {client_id}")
+    
+    @property
+    def embedding_service(self):
+        """Lazy initialization of embedding service"""
+        if self._embedding_service is None:
+            self._embedding_service = EmbeddingService()
+        return self._embedding_service
+    
+    @property
+    def gemini_service(self):
+        """Lazy initialization of gemini service"""
+        if self._gemini_service is None:
+            self._gemini_service = GeminiService()
+        return self._gemini_service
     
     def cleanup(self):
         """Clean up resources"""
