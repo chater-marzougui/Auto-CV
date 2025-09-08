@@ -17,7 +17,7 @@ class ProjectVisibilityUpdate(BaseModel):
 
 
 @router.post("/match-projects", response_model=List[MatchedProject])
-def match_projects_to_job(job_description: JobDescriptionInput, top_k: int = 6):
+def match_projects_to_job(job_description: JobDescriptionInput, top_k: int = 15):
     """
     Match projects to a job description and return the most relevant ones
     """

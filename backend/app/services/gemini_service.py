@@ -91,7 +91,7 @@ class GeminiService:
         "required_technologies": ["Tech 1", "Tech 2", ...],
         "experience_level": "Experience Level",
         "soft_skills": ["Skill 1", "Skill 2", ...],
-        "analysis_summary": "Brief summary here",
+        "analysis_summary": "Brief summary here of the job highlighting main points (3-5 lines)",
         "requirements": "Key requirements here"
     }}
 
