@@ -6,6 +6,7 @@ from sentence_transformers import SentenceTransformer
 import faiss
 from datetime import datetime, timezone
 from app.models.project import Project, MatchedProject
+from app.services.gemini_service import GeminiService
 
 class EmbeddingService:
     def __init__(self):
@@ -17,6 +18,14 @@ class EmbeddingService:
         self.data_dir = "app/data"
         self.embeddings_file = os.path.join(self.data_dir, "embeddings.pkl")
         self.index_file = os.path.join(self.data_dir, "faiss_index.bin")
+        
+        # Initialize Gemini service for enhanced job description processing
+        try:
+            self.gemini_service = GeminiService()
+        except Exception as e:
+            print(f"Warning: Could not initialize Gemini service: {e}")
+            print("Falling back to regex-based technology extraction")
+            self.gemini_service = None
         
         # Create data directory if it doesn't exist
         os.makedirs(self.data_dir, exist_ok=True)
@@ -207,8 +216,39 @@ class EmbeddingService:
         
         print(f"Successfully generated and saved enhanced embeddings for {len(projects)} projects")
     
-    def _extract_job_technologies(self, job_description: str) -> List[str]:
-        """Extract technologies mentioned in job description"""
+    def _extract_job_information_with_gemini(self, job_description: str) -> Dict:
+        """Extract comprehensive job information using Gemini AI"""
+        if not self.gemini_service:
+            # Fallback to basic extraction if Gemini is not available
+            return {
+                'core_technologies': self._extract_job_technologies_fallback(job_description),
+                'secondary_technologies': [],
+                'technical_keywords': [],
+                'experience_level': 'Not specified',
+                'domain_context': '',
+                'key_responsibilities': [],
+                'soft_skills': [],
+                'weighted_description': job_description[:500]  # Truncate for safety
+            }
+        
+        try:
+            return self.gemini_service.extract_job_description_for_embeddings(job_description)
+        except Exception as e:
+            print(f"Error using Gemini for job extraction: {e}")
+            # Fallback to regex-based extraction
+            return {
+                'core_technologies': self._extract_job_technologies_fallback(job_description),
+                'secondary_technologies': [],
+                'technical_keywords': [],
+                'experience_level': 'Not specified',
+                'domain_context': '',
+                'key_responsibilities': [],
+                'soft_skills': [],
+                'weighted_description': job_description[:500]
+            }
+
+    def _extract_job_technologies_fallback(self, job_description: str) -> List[str]:
+        """Fallback regex-based technology extraction (original method)"""
         job_lower = job_description.lower()
         
         # Common technology patterns
@@ -274,7 +314,7 @@ class EmbeddingService:
         return min(overlap_score, 1.5)  # Cap at 1.5 for exceptional matches
     
     def find_matching_projects(self, job_description: str, top_k: int = 4) -> List[MatchedProject]:
-        """Enhanced project matching with multi-factor scoring"""
+        """Enhanced project matching with AI-powered job analysis and multi-factor scoring"""
         try:
             # Load embeddings if not in memory
             if not self.index or not self.embeddings_cache:
@@ -283,12 +323,36 @@ class EmbeddingService:
             if not self.index:
                 raise RuntimeError("No embeddings found. Please scrape GitHub repositories first.")
             
-            # Extract technologies from job description
-            job_technologies = self._extract_job_technologies(job_description)
-            print(f"Extracted job technologies: {job_technologies}")
+            # Extract comprehensive job information using Gemini
+            job_info = self._extract_job_information_with_gemini(job_description)
             
-            # Create enhanced job description for embedding
-            job_text = f"{job_description} Required technologies: {' '.join(job_technologies)}"
+            # Combine all technologies for matching
+            all_job_technologies = (
+                job_info.get('core_technologies', []) + 
+                job_info.get('secondary_technologies', [])
+            )
+            all_job_technologies = self._normalize_technologies(all_job_technologies)
+            
+            print(f"Extracted job information:")
+            print(f"  Core technologies: {job_info.get('core_technologies', [])}")
+            print(f"  Secondary technologies: {job_info.get('secondary_technologies', [])}")
+            print(f"  Technical keywords: {job_info.get('technical_keywords', [])}")
+            print(f"  Experience level: {job_info.get('experience_level', 'Not specified')}")
+            print(f"  Domain context: {job_info.get('domain_context', 'Not specified')}")
+            
+            # Create enhanced job description for embedding using Gemini's weighted description
+            weighted_desc = job_info.get('weighted_description', job_description)
+            technical_keywords = ' '.join(job_info.get('technical_keywords', []))
+            domain_context = job_info.get('domain_context', '')
+            
+            # Enhanced job text for better semantic matching
+            job_text_components = [
+                weighted_desc,
+                f"Required technologies: {' '.join(job_info.get('core_technologies', []))}",
+                f"Technical skills: {technical_keywords}",
+                f"Domain: {domain_context}"
+            ]
+            job_text = ' '.join([comp for comp in job_text_components if comp.strip()])
             
             # Generate embedding for job description
             job_embedding = self.model.encode([job_text], convert_to_tensor=False)
@@ -314,15 +378,23 @@ class EmbeddingService:
                 # Calculate component scores
                 recency_score = self.embeddings_cache['recency_scores'][project_name]
                 quality_score = self.embeddings_cache['quality_scores'][project_name]
-                tech_overlap_score = self._calculate_technology_overlap_score(
-                    project.technologies, job_technologies
+                
+                # Enhanced technology overlap scoring with core vs secondary weighting
+                core_tech_overlap = self._calculate_technology_overlap_score(
+                    project.technologies, job_info.get('core_technologies', [])
+                )
+                secondary_tech_overlap = self._calculate_technology_overlap_score(
+                    project.technologies, job_info.get('secondary_technologies', [])
                 )
                 
-                # Enhanced scoring formula
-                # Weights: semantic(0.4) + tech_overlap(0.35) + recency(0.15) + quality(0.1)
+                # Weighted technology score (core techs are more important)
+                tech_overlap_score = (core_tech_overlap * 0.8 + secondary_tech_overlap * 0.2)
+                
+                # Enhanced scoring formula with improved weights
+                # Weights: semantic(0.35) + tech_overlap(0.4) + recency(0.15) + quality(0.1)
                 final_score = (
-                    float(semantic_score) * 0.4 +
-                    tech_overlap_score * 0.35 +
+                    float(semantic_score) * 0.35 +
+                    tech_overlap_score * 0.4 +
                     recency_score * 0.15 +
                     quality_score * 0.1
                 )
@@ -333,15 +405,25 @@ class EmbeddingService:
                 elif project.bad_readme:
                     final_score *= 0.7  # Moderate penalty
                 
-                # Bonus for projects with job-relevant technologies
-                if tech_overlap_score > 0.5:
-                    final_score *= 1.2
+                # Enhanced bonus system
+                if core_tech_overlap > 0.6:  # Strong core technology match
+                    final_score *= 1.3
+                elif core_tech_overlap > 0.3:  # Moderate core technology match
+                    final_score *= 1.15
+                
+                # Domain relevance bonus (if available)
+                domain_context = job_info.get('domain_context', '').lower()
+                if domain_context and any(keyword in project.detailed_paragraph.lower() 
+                                        for keyword in domain_context.split() if len(keyword) > 3):
+                    final_score *= 1.1
                 
                 candidate_projects.append({
                     'project': project,
                     'final_score': final_score,
                     'semantic_score': float(semantic_score),
                     'tech_overlap_score': tech_overlap_score,
+                    'core_tech_overlap': core_tech_overlap,
+                    'secondary_tech_overlap': secondary_tech_overlap,
                     'recency_score': recency_score,
                     'quality_score': quality_score
                 })
@@ -357,11 +439,13 @@ class EmbeddingService:
                 )
                 matched_projects.append(matched_project)
                 
-                # Debug info
+                # Enhanced debug info
                 print(f"Project: {candidate['project'].name}")
                 print(f"  Final Score: {candidate['final_score']:.3f}")
                 print(f"  Semantic: {candidate['semantic_score']:.3f}")
                 print(f"  Tech Overlap: {candidate['tech_overlap_score']:.3f}")
+                print(f"    Core Tech: {candidate['core_tech_overlap']:.3f}")
+                print(f"    Secondary Tech: {candidate['secondary_tech_overlap']:.3f}")
                 print(f"  Recency: {candidate['recency_score']:.3f}")
                 print(f"  Quality: {candidate['quality_score']:.3f}")
                 print(f"  Technologies: {candidate['project'].technologies}")

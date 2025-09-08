@@ -156,6 +156,54 @@ class GeminiService:
         comp = json_response.get("company_name", "")
         return response_text, comp
 
+    def extract_job_description_for_embeddings(self, job_description: str) -> dict:
+        """
+        Extract and structure job description information optimized for embeddings.
+        Returns key components that improve job-to-project matching quality.
+        """
+        print("Extracting job description with Gemini for embeddings...")
+        
+        prompt = f"""You will be given a job description text. Extract and structure the following information to optimize it for embedding-based project matching:
+
+    Extract the following fields and return them in JSON format:
+    - core_technologies: List of essential technical skills/technologies required (e.g., Python, React, Docker)
+    - secondary_technologies: List of nice-to-have or secondary technologies mentioned
+    - technical_keywords: List of important technical terms, frameworks, methodologies mentioned
+    - experience_level: Required experience level (Junior, Mid-level, Senior, etc.)
+    - domain_context: Brief description of the business domain/industry context
+    - key_responsibilities: List of main job responsibilities that might match project work
+    - soft_skills: Important soft skills mentioned
+    - weighted_description: A condensed, keyword-rich version of the job description optimized for embedding matching
+
+    Your response should be in the following format:
+    {{
+        "core_technologies": ["Technology 1", "Technology 2", ...],
+        "secondary_technologies": ["Tech 1", "Tech 2", ...],
+        "technical_keywords": ["keyword1", "keyword2", ...],
+        "experience_level": "Experience Level",
+        "domain_context": "Brief domain description",
+        "key_responsibilities": ["responsibility1", "responsibility2", ...],
+        "soft_skills": ["skill1", "skill2", ...],
+        "weighted_description": "Keyword-rich condensed description for embeddings"
+    }}
+
+    Guidelines:
+    - Focus on technologies that would be used in actual projects/repositories
+    - Normalize technology names (e.g., "React.js" -> "React", "Node.js" -> "Node.js")
+    - Include both exact technology names and broader categories
+    - The weighted_description should emphasize the most important technical requirements
+    - Extract technical methodologies (e.g., "Agile", "TDD", "Microservices")
+    - Include relevant technical domains (e.g., "machine learning", "web development", "mobile")
+
+    Job description:
+    {job_description}
+    """
+
+        response = self.fast_model.generate_content([prompt])
+        json_response = self._extract_json(response.text)
+        
+        return json_response
+
     def _extract_json(self, text: str) -> dict:
         """
         Extract JSON object from text
@@ -170,8 +218,10 @@ class GeminiService:
                 return parsed_json
             else:
                 print("Warning: Could not find valid JSON in response")
+                return {}
         except json.JSONDecodeError as e:
             print(f"JSON decode error: {str(e)}")
+            return {}
         except Exception as e:
             print(f"Error extracting JSON: {str(e)}")
-        
+            return {}
