@@ -10,7 +10,8 @@ export const config = {
       matchProjects: "/api/v1/match-projects",
       generateApplication: "/api/v1/generate-full-application",
       toggleProjectVisibility: "/api/v1/projects/{projectName}/visibility",
-      updateProject: "/api/v1/projects/{projectName}/update"
+      updateProject: "/api/v1/projects/{projectName}/update",
+      updateProjectContent: "/api/v1/projects/{projectName}/content"
     }
   },
   

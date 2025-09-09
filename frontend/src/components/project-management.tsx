@@ -18,6 +18,7 @@ import { config } from "@/config";
 import { toast } from "sonner";
 import { ProgressCard } from "./progress-card";
 import { RepoCard } from "./repo-card";
+import { useProjectEdit } from "@/hooks/use-project-edit";
 
 interface Project {
   name: string;
@@ -46,6 +47,17 @@ export default function ProjectManagement() {
   const [currentClientId, setCurrentClientId] = useState<string | null>(null);
   const [updatingProjects, setUpdatingProjects] = useState<Set<string>>(new Set());
   const [togglingVisibility, setTogglingVisibility] = useState<Set<string>>(new Set());
+
+  // Edit functionality
+  const {
+    editingProject,
+    editState,
+    isUpdating: isEditUpdating,
+    startEdit,
+    cancelEdit,
+    updateEditState,
+    saveEdit,
+  } = useProjectEdit();
 
   useEffect(() => {
     loadProjects();
@@ -202,6 +214,15 @@ export default function ProjectManagement() {
         return next;
       });
     }
+  };
+
+  const handleSaveEdit = async (projectName: string): Promise<boolean> => {
+    const success = await saveEdit(projectName);
+    if (success) {
+      // Reload projects to show updated content
+      await loadProjects();
+    }
+    return success;
   };
 
   const updateSingleProject = async (projectName: string) => {
@@ -396,6 +417,14 @@ export default function ProjectManagement() {
                   isTogglingVisibility={togglingVisibility.has(project.name)}
                   toggleProjectVisibility={toggleProjectVisibility}
                   updateSingleProject={updateSingleProject}
+                  // Edit functionality props
+                  isEditing={editingProject === project.name}
+                  editState={editState}
+                  isEditUpdating={isEditUpdating}
+                  onStartEdit={startEdit}
+                  onCancelEdit={cancelEdit}
+                  onSaveEdit={handleSaveEdit}
+                  onUpdateEditState={updateEditState}
                 />
               ))}
             </div>

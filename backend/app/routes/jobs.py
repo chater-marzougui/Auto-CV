@@ -15,6 +15,10 @@ class JobDescriptionInput(BaseModel):
 class ProjectVisibilityUpdate(BaseModel):
     hidden_from_search: bool
 
+class ProjectContentUpdate(BaseModel):
+    three_liner: str
+    technologies: List[str]
+
 
 @router.post("/match-projects", response_model=List[MatchedProject])
 def match_projects_to_job(job_description: JobDescriptionInput, top_k: int = 15):
@@ -157,6 +161,49 @@ def toggle_project_visibility(project_name: str, visibility_update: ProjectVisib
         
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error updating project visibility: {str(e)}")
+
+@router.patch("/projects/{project_name}/content")
+def update_project_content(project_name: str, content_update: ProjectContentUpdate):
+    """
+    Update project content (three_liner and technologies) and refresh embeddings
+    """
+    try:
+        scraper = GitHubScraper()
+        projects = scraper.load_projects()
+        
+        # Find the project
+        project_index = next((i for i, p in enumerate(projects) if p.name == project_name), None)
+        
+        if project_index is None:
+            raise HTTPException(status_code=404, detail=f"Project '{project_name}' not found")
+        
+        # Update the project content
+        projects[project_index].three_liner = content_update.three_liner
+        projects[project_index].technologies = content_update.technologies
+        
+        # Save the updated projects
+        scraper.save_projects(projects)
+        
+        # Try to refresh embeddings (gracefully handle network errors)
+        try:
+            visible_projects = [p for p in projects if not getattr(p, 'hidden_from_search', False)]
+            if visible_projects:
+                embedding_service = EmbeddingService()
+                embedding_service.generate_embeddings_for_projects(projects)
+                embeddings_refreshed = True
+        except Exception as e:
+            print(f"Warning: Could not refresh embeddings: {e}")
+            embeddings_refreshed = False
+        
+        return {
+            "message": f"Project '{project_name}' content updated successfully",
+            "three_liner": content_update.three_liner,
+            "technologies": content_update.technologies,
+            "embeddings_refreshed": embeddings_refreshed
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error updating project content: {str(e)}")
 
 @router.post("/projects/{project_name}/update")
 async def update_single_project(project_name: str, background_tasks: BackgroundTasks):
