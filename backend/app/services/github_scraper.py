@@ -344,10 +344,7 @@ class GitHubScraper:
         """
         try:
             # Try all common README file naming conventions
-            readme_files = [
-                'README.md', 'README.MD', 'readme.md', 'Readme.md',
-                'README', 'ReadMe', 'readme', 'readme.MD', 'ReadMe.MD'
-            ]
+            readme_files = self._get_readme_file_name(repo)
             
             for readme_file in readme_files:
                 try:
@@ -393,6 +390,31 @@ class GitHubScraper:
             
             print("All attempts to get repository tree failed")
             return []
+    
+    def _get_readme_file_name(self, repo: Repository) -> List[str]:
+        """
+        Get readme file name
+        """
+        try:
+            default_branch = repo.default_branch
+            tree = repo.get_git_tree(sha=default_branch, recursive=False).tree
+
+            candidates = [
+                item.path
+                for item in tree
+                if item.type == "blob"
+                and re.match(r"(?i)^readme(\.[a-z0-9]+)?$", item.path)
+            ]
+
+            if candidates:
+                return [candidates]
+
+            return []
+        except Exception:
+            return [ "README.md", "README.MD", "readme.md", "Readme.md", "README",
+                "ReadMe", "readme", "readme.MD", "ReadMe.MD",
+            ]
+            
     
     def _extract_technologies(self, repo, readme_content: str) -> List[str]:
         """

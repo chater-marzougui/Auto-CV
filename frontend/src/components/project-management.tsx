@@ -8,12 +8,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import {
-  Loader2,
-  Github,
-  RefreshCw,
-  Activity,
-} from "lucide-react";
+import { Loader2, Github, RefreshCw, Activity } from "lucide-react";
 import { config } from "@/config";
 import { toast } from "sonner";
 import { ProgressCard } from "./progress-card";
@@ -45,8 +40,12 @@ export default function ProjectManagement() {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [showProgress, setShowProgress] = useState(false);
   const [currentClientId, setCurrentClientId] = useState<string | null>(null);
-  const [updatingProjects, setUpdatingProjects] = useState<Set<string>>(new Set());
-  const [togglingVisibility, setTogglingVisibility] = useState<Set<string>>(new Set());
+  const [updatingProjects, setUpdatingProjects] = useState<Set<string>>(
+    new Set()
+  );
+  const [togglingVisibility, setTogglingVisibility] = useState<Set<string>>(
+    new Set()
+  );
 
   // Edit functionality
   const {
@@ -169,14 +168,22 @@ export default function ProjectManagement() {
           error instanceof Error ? error.message : "Unknown error occurred",
       });
     }
-  }
+  };
 
-  const toggleProjectVisibility = async (projectName: string, currentlyHidden: boolean) => {
-    setTogglingVisibility(prev => new Set(prev.add(projectName)));
-    
+  const toggleProjectVisibility = async (
+    projectName: string,
+    currentlyHidden: boolean
+  ) => {
+    setTogglingVisibility((prev) => new Set(prev.add(projectName)));
+
     try {
       const response = await fetch(
-        `${config.api.baseUrl}${config.api.endpoints.toggleProjectVisibility.replace('{projectName}', projectName)}`,
+        `${
+          config.api.baseUrl
+        }${config.api.endpoints.toggleProjectVisibility.replace(
+          "{projectName}",
+          projectName
+        )}`,
         {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
@@ -186,20 +193,28 @@ export default function ProjectManagement() {
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.detail || "Failed to update project visibility");
+        throw new Error(
+          errorData.detail || "Failed to update project visibility"
+        );
       }
 
       // Update the project in local state
-      setProjects(prev => prev.map(p => 
-        p.name === projectName 
-          ? { ...p, hidden_from_search: !currentlyHidden }
-          : p
-      ));
+      setProjects((prev) =>
+        prev.map((p) =>
+          p.name === projectName
+            ? { ...p, hidden_from_search: !currentlyHidden }
+            : p
+        )
+      );
 
       toast.success(
-        `Project ${!currentlyHidden ? 'hidden from' : 'restored to'} similarity search`,
+        `Project ${
+          !currentlyHidden ? "hidden from" : "restored to"
+        } similarity search`,
         {
-          description: `${projectName} has been ${!currentlyHidden ? 'hidden' : 'restored'}`,
+          description: `${projectName} has been ${
+            !currentlyHidden ? "hidden" : "restored"
+          }`,
         }
       );
     } catch (error) {
@@ -208,7 +223,7 @@ export default function ProjectManagement() {
           error instanceof Error ? error.message : "Unknown error occurred",
       });
     } finally {
-      setTogglingVisibility(prev => {
+      setTogglingVisibility((prev) => {
         const next = new Set(prev);
         next.delete(projectName);
         return next;
@@ -226,11 +241,14 @@ export default function ProjectManagement() {
   };
 
   const updateSingleProject = async (projectName: string) => {
-    setUpdatingProjects(prev => new Set(prev.add(projectName)));
-    
+    setUpdatingProjects((prev) => new Set(prev.add(projectName)));
+
     try {
       const response = await fetch(
-        `${config.api.baseUrl}${config.api.endpoints.updateProject.replace('{projectName}', projectName)}`,
+        `${config.api.baseUrl}${config.api.endpoints.updateProject.replace(
+          "{projectName}",
+          projectName
+        )}`,
         {
           method: "POST",
         }
@@ -242,7 +260,8 @@ export default function ProjectManagement() {
       }
 
       toast.success(`Project update started for ${projectName}`, {
-        description: "The project will be re-scraped and updated in the background",
+        description:
+          "The project will be re-scraped and updated in the background",
       });
 
       // Reload projects after a short delay to show updated data
@@ -255,7 +274,7 @@ export default function ProjectManagement() {
           error instanceof Error ? error.message : "Unknown error occurred",
       });
     } finally {
-      setUpdatingProjects(prev => {
+      setUpdatingProjects((prev) => {
         const next = new Set(prev);
         next.delete(projectName);
         return next;
@@ -388,7 +407,7 @@ export default function ProjectManagement() {
         </Card>
 
         {/* Projects Grid */}
-        <div className="space-y-4">
+        <div className="space-y-4 w-full">
           <div className="flex items-center justify-between">
             <h2 className="font-heading text-xl font-semibold">
               Your Projects ({projects.length})
@@ -407,7 +426,8 @@ export default function ProjectManagement() {
               </CardContent>
             </Card>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="flex flex-wrap gap-4 items-center justify-center">
+              {" "}
               {projects.map((project, index) => (
                 <RepoCard
                   key={index}
@@ -417,7 +437,6 @@ export default function ProjectManagement() {
                   isTogglingVisibility={togglingVisibility.has(project.name)}
                   toggleProjectVisibility={toggleProjectVisibility}
                   updateSingleProject={updateSingleProject}
-                  // Edit functionality props
                   isEditing={editingProject === project.name}
                   editState={editState}
                   isEditUpdating={isEditUpdating}
