@@ -461,13 +461,15 @@ export default function ProjectManagement() {
                               onClick={() => toggleProjectVisibility(project.name, project.hidden_from_search || false)}
                               disabled={togglingVisibility.has(project.name)}
                             >
-                              {togglingVisibility.has(project.name) ? (
-                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                              ) : project.hidden_from_search ? (
-                                <Eye className="mr-2 h-4 w-4" />
-                              ) : (
-                                <EyeOff className="mr-2 h-4 w-4" />
-                              )}
+                              {(() => {
+                                if (togglingVisibility.has(project.name)) {
+                                  return <Loader2 className="mr-2 h-4 w-4 animate-spin" />;
+                                } else if (project.hidden_from_search) {
+                                  return <Eye className="mr-2 h-4 w-4" />;
+                                } else {
+                                  return <EyeOff className="mr-2 h-4 w-4" />;
+                                }
+                              })()}
                               {project.hidden_from_search ? 'Show in search' : 'Hide from search'}
                             </DropdownMenuItem>
                             <DropdownMenuSeparator />
@@ -486,7 +488,7 @@ export default function ProjectManagement() {
                         </DropdownMenu>
                       </div>
                     </div>
-                    <CardDescription className="line-clamp-2">
+                    <CardDescription className="line-clamp-7">
                       {project.three_liner ||
                         project.description ||
                         "No description available"}
