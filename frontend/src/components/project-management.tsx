@@ -8,30 +8,16 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-  DropdownMenuSeparator,
-} from "@/components/ui/dropdown-menu";
 import {
   Loader2,
   Github,
-  Star,
-  GitFork,
   RefreshCw,
   Activity,
-  AlertTriangle,
-  MoreVertical,
-  EyeOff,
-  Eye,
-  Download
 } from "lucide-react";
 import { config } from "@/config";
 import { toast } from "sonner";
 import { ProgressCard } from "./progress-card";
+import { RepoCard } from "./repo-card";
 
 interface Project {
   name: string;
@@ -81,22 +67,6 @@ export default function ProjectManagement() {
     } finally {
       setIsLoading(false);
     }
-  };
-
-  const getReadmeStatus = (project: Project) => {
-    if (project.no_readme)
-      return {
-        icon: <AlertTriangle className="h-5 w-5" />, // No README: warning triangle
-        variant: "destructive" as const,
-        text: "No README",
-      };
-    if (project.bad_readme)
-      return {
-        icon: <AlertTriangle className="h-5 w-5" />, // Bad README: warning triangle
-        variant: "default" as const,
-        text: "Bad README",
-      };
-    return null;
   };
 
   const scrapeGithub = async () => {
@@ -377,7 +347,6 @@ export default function ProjectManagement() {
                   </>
                 )}
               </Button>
-
               <Button
                 variant="outline"
                 onClick={loadProjects}
@@ -419,149 +388,15 @@ export default function ProjectManagement() {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {projects.map((project, index) => (
-                <Card key={index} className="hover:shadow-md transition-shadow">
-                  <CardHeader className="pb-3">
-                    <div className="flex items-start justify-between">
-                      <div className="flex flex-col">
-                        <CardTitle className="text-lg font-medium truncate">
-                          {project.name}
-                        </CardTitle>
-                        {project.hidden_from_search && (
-                          <Badge variant="outline" className="text-xs mt-1 w-fit">
-                            <EyeOff className="h-3 w-3 mr-1" />
-                            Hidden from search
-                          </Badge>
-                        )}
-                      </div>
-                      <div className="flex gap-1 ml-2 shrink-0">
-                        {getReadmeStatus(project) ? (
-                          <Badge variant={getReadmeStatus(project)!.variant} className="text-xs p-2">
-                            {getReadmeStatus(project)!.icon}
-                          </Badge>
-                        ) : (
-                          <Badge variant="outline">
-                            {project.language || "Unknown"}
-                          </Badge>
-                        )}
-                        
-                        {/* Dropdown Menu */}
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button 
-                              variant="ghost" 
-                              size="sm" 
-                              className="h-8 w-8 p-0"
-                              disabled={updatingProjects.has(project.name) || togglingVisibility.has(project.name)}
-                            >
-                              <MoreVertical className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem
-                              onClick={() => toggleProjectVisibility(project.name, project.hidden_from_search || false)}
-                              disabled={togglingVisibility.has(project.name)}
-                            >
-                              {(() => {
-                                if (togglingVisibility.has(project.name)) {
-                                  return <Loader2 className="mr-2 h-4 w-4 animate-spin" />;
-                                } else if (project.hidden_from_search) {
-                                  return <Eye className="mr-2 h-4 w-4" />;
-                                } else {
-                                  return <EyeOff className="mr-2 h-4 w-4" />;
-                                }
-                              })()}
-                              {project.hidden_from_search ? 'Show in search' : 'Hide from search'}
-                            </DropdownMenuItem>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem
-                              onClick={() => updateSingleProject(project.name)}
-                              disabled={updatingProjects.has(project.name)}
-                            >
-                              {updatingProjects.has(project.name) ? (
-                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                              ) : (
-                                <Download className="mr-2 h-4 w-4" />
-                              )}
-                              Update project
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </div>
-                    </div>
-                    <CardDescription className="line-clamp-7">
-                      {project.three_liner ||
-                        project.description ||
-                        "No description available"}
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-3">
-                    <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                      <div className="flex items-center gap-1">
-                        <Star className="h-4 w-4" />
-                        {project.stars}
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <GitFork className="h-4 w-4" />
-                        {project.forks}
-                      </div>
-                    </div>
-
-                    {project.technologies &&
-                      project.technologies.length > 0 && (
-                        <div className="flex flex-wrap gap-1 items-center">
-                          {project.technologies
-                            .slice(0, 3)
-                            .map((tech, techIndex) => (
-                              <Badge
-                                key={techIndex}
-                                variant="secondary"
-                                className="text-xs"
-                              >
-                                {tech}
-                              </Badge>
-                            ))}
-                          {project.technologies.length > 3 && (
-                            <div className="relative group">
-                              <Badge
-                                variant="secondary"
-                                className="text-xs cursor-pointer select-none"
-                              >
-                                +{project.technologies.length - 3}
-                              </Badge>
-                              <div className="absolute left-0 z-10 mt-1 hidden group-hover:flex flex-col bg-popover border border-border rounded shadow-lg p-2 min-w-max">
-                                {project.technologies
-                                  .slice(3)
-                                  .map((tech, idx) => (
-                                    <span
-                                      key={idx}
-                                      className="text-xs px-2 py-1 rounded hover:bg-muted"
-                                    >
-                                      {tech}
-                                    </span>
-                                  ))}
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      )}
-
-                    <Button
-                      asChild
-                      variant="outline"
-                      size="sm"
-                      className="w-full bg-transparent text-blue-400 hover:text-blue-500"
-                    >
-                      <a
-                        href={project.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                      >
-                        <Github className="mr-2 h-4 w-4" />
-                        View on GitHub
-                      </a>
-                    </Button>
-                  </CardContent>
-                </Card>
+                <RepoCard
+                  key={index}
+                  index={index}
+                  project={project}
+                  isUpdating={updatingProjects.has(project.name)}
+                  isTogglingVisibility={togglingVisibility.has(project.name)}
+                  toggleProjectVisibility={toggleProjectVisibility}
+                  updateSingleProject={updateSingleProject}
+                />
               ))}
             </div>
           )}
