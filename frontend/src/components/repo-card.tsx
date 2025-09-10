@@ -153,7 +153,7 @@ export const RepoCard: React.FC<RepoCardProps> = ({
               <Badge variant="outline">{project.language || "Unknown"}</Badge>
             )}
             {/* Dropdown Menu for actions */}
-            <DropdownMenu modal={false}>
+            <DropdownMenu >
               <DropdownMenuTrigger asChild>
                 <Button
                   variant="ghost"

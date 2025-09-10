@@ -9,6 +9,8 @@ export const config = {
       analyzeJob: "/api/v1/analyze-job",
       matchProjects: "/api/v1/match-projects",
       generateApplication: "/api/v1/generate-full-application",
+      generateCV: "/api/v1/generate-cv",
+      generateCoverLetter: "/api/v1/generate-cover-letter",
       toggleProjectVisibility: "/api/v1/projects/{projectName}/visibility",
       updateProject: "/api/v1/projects/{projectName}/update",
       updateProjectContent: "/api/v1/projects/{projectName}/content"

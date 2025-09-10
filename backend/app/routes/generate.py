@@ -10,6 +10,7 @@ from app.services.embeddings import EmbeddingService
 
 router = APIRouter()
 
+@router.post("/generate-cv")
 def generate_cv(request: CVGenerationRequest):
     """
     Generate a CV PDF based on matched projects and personal information

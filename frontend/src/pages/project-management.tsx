@@ -11,26 +11,10 @@ import { Input } from "@/components/ui/input";
 import { Loader2, Github, RefreshCw, Activity } from "lucide-react";
 import { config } from "@/config";
 import { toast } from "sonner";
-import { ProgressCard } from "./progress-card";
-import { RepoCard } from "./repo-card";
+import { ProgressCard } from "../components/progress-card";
+import { RepoCard } from "../components/repo-card";
 import { useProjectEdit } from "@/hooks/use-project-edit";
-
-interface Project {
-  name: string;
-  url: string;
-  description: string;
-  three_liner: string;
-  detailed_paragraph: string;
-  technologies: string[];
-  bad_readme: boolean;
-  no_readme: boolean;
-  stars: number;
-  forks: number;
-  language: string;
-  created_at: string;
-  updated_at: string;
-  hidden_from_search?: boolean;
-}
+import type { Project } from "@/types/project";
 
 export default function ProjectManagement() {
   const [projects, setProjects] = useState<Project[]>([]);
@@ -427,7 +411,6 @@ export default function ProjectManagement() {
             </Card>
           ) : (
             <div className="flex flex-wrap gap-4 items-center justify-center">
-              {" "}
               {projects.map((project, index) => (
                 <RepoCard
                   key={index}

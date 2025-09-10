@@ -32,7 +32,7 @@ class MatchedProject(BaseModel):
 
 class CVGenerationRequest(BaseModel):
     matched_projects: List[MatchedProject]
-    personal_info: dict
+    personal_info: Optional[dict] = None
     template_path: Optional[str] = None
     
 class CoverLetterRequest(BaseModel):

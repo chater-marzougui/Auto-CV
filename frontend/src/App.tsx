@@ -1,13 +1,14 @@
 import { useState } from "react";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Sidebar } from "@/components/sidebar";
-import { CVGenerator } from "@/components/cv-generator";
-import { JobAnalysis } from "@/components/job-analysis";
-import ProjectManagement from "@/components/project-management";
+import { PersonalInfo } from "@/pages/personal-info";
+import { JobAnalysis } from "@/pages/job-analysis";
+import ProjectManagement from "@/pages/project-management";
 import "./App.css";
 import { Toaster } from "sonner";
+import { CVGenerator } from "./pages/cv-generator";
 
-type ActiveTab = "job-analysis" | "projects" | "cv-generator";
+type ActiveTab = "job-analysis" | "projects" | "cv-generator" | "personal-info";
 
 function App() {
   const [activeTab, setActiveTab] = useState<ActiveTab>("job-analysis");
@@ -20,6 +21,8 @@ function App() {
         return <ProjectManagement />;
       case "cv-generator":
         return <CVGenerator />;
+      case "personal-info":
+        return <PersonalInfo />;
       default:
         return <JobAnalysis />;
     }

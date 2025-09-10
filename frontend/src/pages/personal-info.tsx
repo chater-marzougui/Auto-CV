@@ -20,7 +20,7 @@ interface PersonalInfo {
   summary: string
 }
 
-export function CVGenerator() {
+export function PersonalInfo() {
   const [personalInfo, setPersonalInfo] = useState<PersonalInfo>({
     first_name: "",
     last_name: "",

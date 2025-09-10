@@ -1,15 +1,28 @@
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { FileText, GitBranch, Briefcase, Github } from "lucide-react";
+import {
+  FileText,
+  GitBranch,
+  Briefcase,
+  Github,
+  PersonStanding,
+} from "lucide-react";
 import { ThemeToggle } from "@/components/theme-toggle";
 
 interface SidebarProps {
   activeTab: string;
-  onTabChange: (tab: "job-analysis" | "projects" | "cv-generator") => void;
+  onTabChange: (
+    tab: "job-analysis" | "projects" | "cv-generator" | "personal-info"
+  ) => void;
 }
 
 export function Sidebar({ activeTab, onTabChange }: Readonly<SidebarProps>) {
-  const menuItems = [
+  const menuItems: Array<{
+    id: "job-analysis" | "projects" | "cv-generator" | "personal-info";
+    label: string;
+    icon: React.ElementType;
+    description: string;
+  }> = [
     {
       id: "job-analysis" as const,
       label: "Job Analysis",
@@ -26,7 +39,13 @@ export function Sidebar({ activeTab, onTabChange }: Readonly<SidebarProps>) {
       id: "cv-generator" as const,
       label: "CV Generator",
       icon: FileText,
-      description: "Generate CV & cover letter",
+      description: "Generate CV",
+    },
+    {
+      id: "personal-info" as const,
+      label: "Personal Info",
+      icon: PersonStanding,
+      description: "Manage personal information",
     },
   ];
 
