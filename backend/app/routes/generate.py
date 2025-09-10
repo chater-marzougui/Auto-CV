@@ -91,6 +91,7 @@ def generate_full_application(request: GenerateFullApplicationRequest):
         cv_path = cv_generator.generate_cv(cv_request)
         
         # Step 3: Generate Cover Letter
+        print("Generating cover letter...")
         letter_request = CoverLetterRequest(
             job_description=job_description,
             matched_projects=matched_projects,

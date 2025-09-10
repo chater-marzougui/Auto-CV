@@ -345,7 +345,6 @@ class GitHubScraper:
         try:
             # Try all common README file naming conventions
             readme_files = self._get_readme_file_name(repo)
-            
             for readme_file in readme_files:
                 try:
                     readme = repo.get_contents(readme_file)
@@ -407,7 +406,7 @@ class GitHubScraper:
             ]
 
             if candidates:
-                return [candidates]
+                return candidates
 
             return []
         except Exception:

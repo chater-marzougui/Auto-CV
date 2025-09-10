@@ -61,8 +61,6 @@ class CVGenerator:
             new_projects_content = self.generate_projects_latex(request.matched_projects)
             
             print("Replacing projects section")
-            # Find and replace the projects section
-            # Pattern to match everything between \begin{itemize} after Personal Projects and \end{itemize}
             pattern = r'(\\cvsection\{PERSONAL PROJECTS\}.*?\\begin\{itemize\}(?:\[.*?\])?)(.*?)(\\end\{itemize\})'
 
             def replace_projects(match):
@@ -93,9 +91,9 @@ class CVGenerator:
                 # Write LaTeX content to file
                 with open(tex_file, 'w', encoding='utf-8') as f:
                     f.write(latex_content)
-                
-                print("Compiling LaTeX...")
-                
+
+                print(f"Compiling {output_name}...")
+
                 # Set environment variables for MiKTeX
                 env = os.environ.copy()
                 env['MIKTEX_ENABLEINSTALLER'] = 'yes'  # Allow automatic package installation
