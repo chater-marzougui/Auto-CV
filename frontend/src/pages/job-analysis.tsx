@@ -245,7 +245,6 @@ export function JobAnalysis() {
         <ProgressCard
           isVisible={showProgress}
           title="Job Analysis Progress"
-          disconnectOnClose={false}
           onClose={handleProgressClose}
           websocketUrl={`ws://localhost:5000/ws/${clientId}`}
           onComplete={() => {}}
