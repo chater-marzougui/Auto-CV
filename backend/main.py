@@ -1,6 +1,7 @@
 from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
-from app.routes import jobs, generate
+from app.routes import jobs, generate, personal_info, job_applications
+from app.database.database import init_db
 from app.services.github_scraper import GitHubScraper
 from pydantic import BaseModel
 from dotenv import load_dotenv
@@ -77,6 +78,8 @@ websocket_manager = WebSocketManager()
 # Include routers
 app.include_router(jobs.router, prefix="/api/v1")
 app.include_router(generate.router, prefix="/api/v1")
+app.include_router(personal_info.router, prefix="/api/v1")
+app.include_router(job_applications.router, prefix="/api/v1")
 
 @app.get("/")
 def root():
@@ -207,5 +210,7 @@ async def scrape_github_profile(req: ScrapeRequest, background_tasks: Background
         raise HTTPException(status_code=400, detail=str(e))
 
 if __name__ == "__main__":
+    # Initialize database
+    init_db()
     import uvicorn
     uvicorn.run("main:app", host="0.0.0.0", port=5000, reload=True)

@@ -73,6 +73,8 @@ Built with ❤️ by [Chater Marzougui](https://github.com/chater-marzougui).
 - 📝 **LaTeX Document Generation**: Professional CV and cover letter creation with customizable templates
 - 🎨 **Modern Web Interface**: React TypeScript frontend with Tailwind CSS and Radix UI components
 - 📊 **REST API**: Comprehensive FastAPI backend with full documentation and testing support
+- 💾 **Database Storage**: SQLite database for storing personal information and job application history
+- 📋 **Application Tracking**: Track all job applications with generated CV and cover letter links
 
 <div align="right">
   <a href="#readme-top">
@@ -195,15 +197,48 @@ curl -X POST "http://localhost:5000/api/v1/generate-full-application" \
       "company": "StartupXYZ",
       "description": "Python backend developer with FastAPI experience..."
     },
-    "personal_info": {
-      "first_name": "John",
-      "last_name": "Doe", 
-      "email": "john@example.com",
-      "phone": "+1234567890",
-      "title": "Software Developer",
-      "summary": "Experienced software developer with 5+ years..."
-    }
+    "personal_info_id": 1
   }'
+```
+
+#### Manage Personal Information
+```bash
+# Create personal info
+curl -X POST "http://localhost:5000/api/v1/personal-info/" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "first_name": "John",
+    "last_name": "Doe",
+    "email": "john@example.com",
+    "phone": "+1234567890",
+    "title": "Software Developer",
+    "summary": "Experienced software developer with 5+ years..."
+  }'
+
+# Update personal info
+curl -X PUT "http://localhost:5000/api/v1/personal-info/1" \
+  -H "Content-Type: application/json" \
+  -d '{"title": "Senior Software Developer"}'
+
+# Get personal info
+curl "http://localhost:5000/api/v1/personal-info/1"
+```
+
+#### Track Job Applications
+```bash
+# Create job application
+curl -X POST "http://localhost:5000/api/v1/job-applications/" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "personal_info_id": 1,
+    "job_title": "Full Stack Developer", 
+    "company_name": "TechCorp",
+    "job_description": "Looking for a developer...",
+    "status": "applied"
+  }'
+
+# Get job applications for a person
+curl "http://localhost:5000/api/v1/personal-info/1/job-applications"
 ```
 
 <div align="right">
@@ -248,17 +283,28 @@ LOG_LEVEL=INFO
 Auto-CV/
 ├── backend/
 │   ├── app/
-│   │   ├── services/        # Core business logic
-│   │   ├── routes/          # API endpoints
-│   │   ├── models/          # Data models
-│   │   └── data/            # Generated data and embeddings
-│   ├── templates/           # LaTeX templates
-│   └── output/              # Generated PDFs
+│   │   ├── database/         # Database models and CRUD operations
+│   │   │   ├── models.py     # SQLAlchemy models
+│   │   │   ├── schemas.py    # Pydantic schemas
+│   │   │   ├── crud.py       # Database operations
+│   │   │   └── database.py   # Database connection
+│   │   ├── services/         # Core business logic
+│   │   ├── routes/           # API endpoints
+│   │   │   ├── personal_info.py        # Personal info management
+│   │   │   ├── job_applications.py     # Job application tracking
+│   │   │   ├── generate.py             # CV/Cover letter generation
+│   │   │   └── jobs.py                 # Project matching
+│   │   ├── models/           # Data models
+│   │   └── data/             # Generated data and embeddings
+│   ├── templates/            # LaTeX templates
+│   ├── output/               # Generated PDFs
+│   ├── app_data.db           # SQLite database
+│   └── main.py               # FastAPI application
 ├── frontend/
 │   └── src/
-│       ├── components/      # React components
-│       └── hooks/           # Custom React hooks
-└── package.json            # Root package configuration
+│       ├── components/       # React components
+│       └── hooks/            # Custom React hooks
+└── package.json             # Root package configuration
 ```
 
 <div align="right">
