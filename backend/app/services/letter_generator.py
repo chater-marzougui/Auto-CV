@@ -82,16 +82,16 @@ class CoverLetterGenerator:
         except Exception as e:
             raise RuntimeError(f"Error extracting text from PDF: {str(e)}")
     
-    def _create_latex_document(self, content: str, personal_info: dict = None) -> str:
+    def _create_latex_document(self, content: str) -> str:
         """
         Create LaTeX document with generated content using professional template
         """
         # Extract personal info with defaults
-        name = personal_info.get('first_name', 'John') + ' ' + personal_info.get('last_name', 'Doe') if personal_info else 'John Doe'
-        email = personal_info.get('email', 'john.doe@example.com') if personal_info else 'john.doe@example.com'
-        phone = personal_info.get('phone', '+1 (555) 123-4567') if personal_info else '+1 (555) 123-4567'
-        title = personal_info.get('title', 'Software Developer') if personal_info else 'Software Developer'
-        
+        name = 'Chater Marzougui'
+        email = 'chater.marzougui@supcom.tn'
+        phone = '+216 28 356 927'
+        title = 'Software Engineering Student'
+
         latex_template = r"""
 \documentclass[11pt,a4paper]{article}
 \usepackage[utf8]{inputenc}
