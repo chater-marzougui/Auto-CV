@@ -1,10 +1,10 @@
-
 import { Button } from "@/components/ui/button";
 import { Loader2, FileText, Mail, Download, Activity } from "lucide-react";
+import { config } from "@/config";
 
 interface Links {
-    cv_download_url?: string;
-    cover_letter_download_url?: string;
+  cv_download_url?: string;
+  cover_letter_download_url?: string;
 }
 
 interface JobAnalysisHeaderProps {
@@ -27,6 +27,7 @@ export function JobAnalysisHeader({
   onToggleProgress,
   hasActiveClient,
 }: Readonly<JobAnalysisHeaderProps>) {
+  const baseUrl = config.api.baseUrl;
   const hasDownloads =
     analysisResult?.cv_download_url ||
     analysisResult?.cover_letter_download_url;
@@ -44,7 +45,7 @@ export function JobAnalysisHeader({
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
           {/* Progress Toggle */}
           <Button
             variant="outline"
@@ -83,8 +84,9 @@ export function JobAnalysisHeader({
               {analysisResult.cv_download_url && (
                 <Button asChild size="sm" variant="outline">
                   <a
-                    href={analysisResult.cv_download_url}
+                    href={`${baseUrl}${analysisResult.cv_download_url}`}
                     target="_blank"
+                    download="CV.pdf"
                     rel="noreferrer"
                   >
                     <Download className="mr-2 h-4 w-4" />
@@ -95,8 +97,9 @@ export function JobAnalysisHeader({
               {analysisResult.cover_letter_download_url && (
                 <Button asChild size="sm" variant="outline">
                   <a
-                    href={analysisResult.cover_letter_download_url}
+                    href={`${baseUrl}${analysisResult.cover_letter_download_url}`}
                     target="_blank"
+                    download="Cover_Letter.pdf"
                     rel="noreferrer"
                   >
                     <Mail className="mr-2 h-4 w-4" />

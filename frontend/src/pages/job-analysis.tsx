@@ -9,7 +9,6 @@ import { ProjectSelection } from "@/components/job-analysis/ProjectSelection";
 import type { MatchedProject } from "@/types/project";
 import { JobDescriptionInput } from "@/components/job-analysis/JobDescriptionInput";
 import { ProgressCard } from "@/components/progress-card";
-
 interface JobAnalysisResult {
   job_analysis_result: JobDescriptionResult;
   matched_projects: Array<{
@@ -51,7 +50,7 @@ export function JobAnalysis() {
     []
   );
   const [showProgress, setShowProgress] = useState(false);
-  const [currentClientId, setCurrentClientId] = useState<string | null>(null);
+  const clientId = `job-analysis-${userId || "guest"}}`;
 
   const analyzeJob = async () => {
     if (!jobDescription.trim()) {
@@ -63,10 +62,6 @@ export function JobAnalysis() {
     setShowProgress(true);
     
     try {
-      // Generate a client ID for websocket connection
-      const clientId = `job-analysis-${Date.now()}`;
-      setCurrentClientId(clientId);
-
       const response = await fetch(
         `${config.api.baseUrl}${config.api.endpoints.analyzeJob}`,
         {
@@ -119,6 +114,7 @@ export function JobAnalysis() {
         description: error instanceof Error ? `: ${error.message}` : "",
       });
     } finally {
+      setShowProgress(false);
       setIsAnalyzing(false);
     }
   };
@@ -162,10 +158,6 @@ export function JobAnalysis() {
     setShowProgress(true);
     
     try {
-      // Generate a client ID for websocket connection
-      const clientId = `app-generation-${Date.now()}`;
-      setCurrentClientId(clientId);
-
       const requestBody: GenerateApplicationRequest = {
         personal_info_id: userId,
         job_description: analysisResult.job_analysis_result,
@@ -210,17 +202,13 @@ export function JobAnalysis() {
         description: error instanceof Error ? `: ${error.message}` : "",
       });
     } finally {
+      setShowProgress(false);
       setIsGenerating(false);
     }
   };
 
   const handleProgressClose = () => {
     setShowProgress(false);
-  };
-
-  const onCompleteProcess = async () => {
-    // Refresh data if needed after completion
-    console.log("Process completed");
   };
 
   return (
@@ -232,7 +220,7 @@ export function JobAnalysis() {
         selectedProjectsCount={selectedProjects.length}
         showProgress={showProgress}
         onToggleProgress={() => setShowProgress(!showProgress)}
-        hasActiveClient={!!currentClientId}
+        hasActiveClient={!!clientId}
       />
 
       <div className="flex-1 p-6 space-y-6 overflow-auto">
@@ -253,12 +241,14 @@ export function JobAnalysis() {
       </div>
 
       {/* Progress Card - Fixed positioned overlay */}
-      {currentClientId && (
+      {userId && (
         <ProgressCard
           isVisible={showProgress}
+          title="Job Analysis Progress"
+          disconnectOnClose={false}
           onClose={handleProgressClose}
-          websocketUrl={`ws://localhost:5000/ws/${currentClientId}`}
-          onComplete={onCompleteProcess}
+          websocketUrl={`ws://localhost:5000/ws/${clientId}`}
+          onComplete={() => {}}
         />
       )}
     </div>

@@ -19,6 +19,8 @@ import {
 import { useProgressWebSocket } from '@/hooks/use-websocket';
 
 interface ProgressCardProps {
+  title?: string;
+  disconnectOnClose?: boolean;
   isVisible: boolean;
   onClose: () => void;
   websocketUrl?: string;
@@ -96,6 +98,8 @@ const getTimelineItemColor = (item: {
 };
 
 export const ProgressCard: React.FC<ProgressCardProps> = ({ 
+  title,
+  disconnectOnClose = true,
   isVisible, 
   onClose, 
   websocketUrl = `ws://localhost:5000/ws/${Date.now()}` ,
@@ -178,7 +182,7 @@ export const ProgressCard: React.FC<ProgressCardProps> = ({
   React.useEffect(() => {
     if (isVisible && !isConnected) {
       connect();
-    } else if (!isVisible && isConnected) {
+    } else if (!isVisible && isConnected && disconnectOnClose) {
       disconnect();
     }
   }, [isVisible, isConnected, connect, disconnect]);
@@ -196,7 +200,7 @@ export const ProgressCard: React.FC<ProgressCardProps> = ({
             <div className={`p-2 rounded-full ${isConnected ? 'bg-green-100 text-green-600' : 'bg-gray-100 text-gray-400'}`}>
               <StepIcon className={`h-5 w-5 ${isProcessing ? 'animate-spin' : ''}`} />
             </div>
-            <span>Scraping Progress</span>
+            <span>{title ?? "Scraping Progress"}</span>
           </CardTitle>
           <Button
             variant="ghost"
@@ -280,7 +284,7 @@ export const ProgressCard: React.FC<ProgressCardProps> = ({
             
             {showTimeline && (
               <div className="space-y-2 max-h-48 overflow-y-auto">
-                {timeline.slice(0, 20).map((item) => {
+                {timeline.slice(0, 30).map((item) => {
                   const ItemIcon = getTimelineItemIcon(item);
                   const isProcessing = ['processing', 'ai_processing', 'embedding', 'saving', 'embeddings'].includes(item.step || '');
                   

@@ -1,3 +1,4 @@
+from datetime import datetime
 from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
 from app.routes import jobs, generate, personal_info, job_applications
@@ -10,12 +11,12 @@ import asyncio
 import json
 from typing import Dict, List
 import uuid
-import logging
 from app.utils.colored_logger import get_api_logger, get_websocket_logger, log_progress, log_success, log_warning, log_error
 
 # Configure colored logging
 api_logger = get_api_logger()
 ws_logger = get_websocket_logger()
+PREFIX = "/api/v1"
 
 # Point directly to the backend/.env file
 load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), ".env"))
@@ -32,12 +33,12 @@ class WebSocketManager:
         await websocket.accept()
         async with self.connection_lock:
             self.active_connections[client_id] = websocket
-        log_success(ws_logger, f"WebSocket connected", f"client: {client_id}")
+        log_success(ws_logger, "WebSocket connected", f"client: {client_id}")
     
     async def disconnect(self, client_id: str):
         async with self.connection_lock:
             if client_id in self.active_connections:
-                log_warning(ws_logger, f"WebSocket disconnected", f"client: {client_id}")
+                log_warning(ws_logger, "WebSocket disconnected", f"client: {client_id}")
                 del self.active_connections[client_id]
     
     async def send_progress(self, client_id: str, message: dict):
@@ -54,7 +55,7 @@ class WebSocketManager:
                         del self.active_connections[client_id]
                     return False
             else:
-                log_warning(ws_logger, f"No active connection found", f"client: {client_id}")
+                log_warning(ws_logger, "No active connection found", f"client: {client_id}")
                 return False
 
 app = FastAPI(
@@ -81,10 +82,10 @@ jobs.websocket_manager = websocket_manager
 generate.websocket_manager = websocket_manager
 
 # Include routers
-app.include_router(jobs.router, prefix="/api/v1")
-app.include_router(generate.router, prefix="/api/v1")
-app.include_router(personal_info.router, prefix="/api/v1")
-app.include_router(job_applications.router, prefix="/api/v1")
+app.include_router(jobs.router, prefix=PREFIX)
+app.include_router(generate.router, prefix=PREFIX)
+app.include_router(personal_info.router, prefix=PREFIX)
+app.include_router(job_applications.router, prefix=PREFIX)
 
 @app.get("/")
 def root():
@@ -107,13 +108,13 @@ async def websocket_endpoint(websocket: WebSocket, client_id: str):
                 await websocket.send_text(json.dumps({
                     "type": "heartbeat",
                     "message": "Connection alive",
-                    "timestamp": "2024-01-01T00:00:00"
+                    "timestamp": datetime.now().isoformat()
                 }))
             except WebSocketDisconnect:
                 break
                 
     except WebSocketDisconnect:
-        log_warning(ws_logger, f"WebSocket client disconnected", f"client: {client_id}")
+        log_warning(ws_logger, "WebSocket client disconnected", f"client: {client_id}")
     finally:
         await websocket_manager.disconnect(client_id)
 
@@ -121,7 +122,7 @@ async def perform_github_scraping(github_username: str, client_id: str):
     """Background task to perform GitHub scraping with proper async handling"""
     scraper = None
     try:
-        log_progress(api_logger, f"Starting GitHub scraping task", repo=github_username)
+        log_progress(api_logger, "Starting GitHub scraping task", repo=github_username)
         
         # Create scraper with WebSocket support
         scraper = GitHubScraper(websocket_manager=websocket_manager, client_id=client_id)
@@ -134,7 +135,7 @@ async def perform_github_scraping(github_username: str, client_id: str):
             "current": 0,
             "total": 0,
             "repo_name": "",
-            "timestamp": "2024-01-01T00:00:00",
+            "timestamp": datetime.now().isoformat(),
             "alert": {
                 "type": "info",
                 "message": f"Starting scraping process for {github_username}"
@@ -198,7 +199,7 @@ async def scrape_github_profile(req: ScrapeRequest, background_tasks: Background
     try:
         github_username = req.github_username
         client_id = str(uuid.uuid4())
-        log_progress(api_logger, f"Received scrape request", repo=github_username)
+        log_progress(api_logger, "Received scrape request", repo=github_username)
         log_progress(api_logger, f"Generated client_id: {client_id}", repo=github_username)
         
         # Add the scraping task to background tasks

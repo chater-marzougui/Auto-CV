@@ -313,14 +313,21 @@ def download_file(filename: str):
         return FileResponse(
             path=file_path,
             filename=filename,
-            media_type='application/pdf'
+            media_type='application/pdf',
+            headers={
+                "Content-Disposition": f"attachment; filename={filename}",
+                "Content-Type": "application/pdf",
+                "Cache-Control": "no-cache, no-store, must-revalidate",
+                "Pragma": "no-cache",
+                "Expires": "0"
+            }
         )
         
     except HTTPException:
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error downloading file: {str(e)}")
-
+    
 @router.post("/upload-cv-template")
 def upload_cv_template(file: UploadFile = File(...)):
     """
