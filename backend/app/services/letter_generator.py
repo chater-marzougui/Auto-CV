@@ -25,9 +25,27 @@ class CoverLetterGenerator:
         Generate cover letter PDF using Gemini AI
         """
         try:
-            # Extract text from template PDF
+            # Use a default professional template if no template PDF exists
             template_path = request.template_path or os.path.join(self.templates_dir, "cover_letter_template.pdf")
-            template_text = self._extract_text_from_pdf(template_path)
+            
+            if os.path.exists(template_path):
+                template_text = self._extract_text_from_pdf(template_path)
+            else:
+                # Default professional template structure
+                template_text = """
+                Dear Hiring Manager,
+
+                I am writing to express my strong interest in the [Position] role at [Company]. With my background in software development and proven track record in delivering high-quality projects, I am confident I would be a valuable addition to your team.
+
+                In my recent projects, I have gained extensive experience with [relevant technologies]. My work has focused on [relevant domains], where I have successfully [achievements]. This experience has equipped me with the technical skills and problem-solving abilities that align perfectly with your requirements.
+
+                What particularly excites me about this opportunity is [company/role specific interest]. I am eager to contribute my expertise to help [Company] achieve its goals and would welcome the opportunity to discuss how my background can benefit your team.
+
+                Thank you for your time and consideration.
+
+                Best regards,
+                [Your Name]
+                """
             # Generate cover letter content using Gemini
             cover_letter_content, company = self.gemini_service.generate_cover_letter(
                 template_text=template_text,
@@ -36,22 +54,12 @@ class CoverLetterGenerator:
             )
             
             # Create LaTeX content with the generated text
-            latex_content = self._create_latex_document(cover_letter_content)
+            latex_content = self._create_latex_document(cover_letter_content, request.personal_info)
             
             # Generate PDF
             pdf_path = self._compile_latex(latex_content, f"cover_letter_{company}")
             return pdf_path
 
-        except Exception as e:
-            raise RuntimeError(f"Error generating cover letter: {str(e)}")
-
-    def _extract_text_from_pdf(self, pdf_path: str) -> str:
-        """
-        Extract text content from PDF template
-        """
-        try:
-            return pdf_path
-            
         except Exception as e:
             raise RuntimeError(f"Error generating cover letter: {str(e)}")
 
@@ -74,23 +82,83 @@ class CoverLetterGenerator:
         except Exception as e:
             raise RuntimeError(f"Error extracting text from PDF: {str(e)}")
     
-    def _create_latex_document(self, content: str) -> str:
+    def _create_latex_document(self, content: str, personal_info: dict = None) -> str:
         """
-        Create LaTeX document with generated content
+        Create LaTeX document with generated content using professional template
         """
+        # Extract personal info with defaults
+        name = personal_info.get('first_name', 'John') + ' ' + personal_info.get('last_name', 'Doe') if personal_info else 'John Doe'
+        email = personal_info.get('email', 'john.doe@example.com') if personal_info else 'john.doe@example.com'
+        phone = personal_info.get('phone', '+1 (555) 123-4567') if personal_info else '+1 (555) 123-4567'
+        title = personal_info.get('title', 'Software Developer') if personal_info else 'Software Developer'
+        
         latex_template = r"""
-\documentclass[11pt,a4paper]{letter}
+\documentclass[11pt,a4paper]{article}
 \usepackage[utf8]{inputenc}
-\usepackage[margin=1in]{geometry}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage[left=0.8in,right=0.8in,top=0.8in,bottom=1in]{geometry}
 \usepackage{parskip}
+\usepackage{xcolor}
+\usepackage{tikz}
+\usepackage{microtype}
+\usepackage{enumitem}
+\usepackage{setspace}
+\usepackage{titling}
+
+% Define colors
+\definecolor{primaryblue}{RGB}{41, 128, 185}
+\definecolor{darkgray}{RGB}{64, 64, 64}
+\definecolor{lightgray}{RGB}{128, 128, 128}
+
+% Remove page numbering
+\pagestyle{empty}
+
+% Custom section formatting
+\usepackage{titlesec}
+\titleformat{\section}[hang]{\large\bfseries\color{primaryblue}}{}{0em}{}[\vspace{-0.5em}\color{primaryblue}\rule{\textwidth}{0.8pt}\vspace{0.2em}]
+
+% Header with modern design
+\newcommand{\letterheader}{
+    \begin{center}
+        \tikz[remember picture,overlay] \node[anchor=north,yshift=-0.5cm] at (current page.north) {
+            \begin{tikzpicture}
+                \fill[primaryblue!10] (0,0) rectangle (\paperwidth,-3cm);
+            \end{tikzpicture}
+        };
+        
+        \vspace{1.5cm}
+        {\Huge\bfseries\color{primaryblue}""" + name + r"""}\\[0.3cm]
+        {\Large\color{darkgray}""" + title + r"""}\\[0.8cm]
+        
+        \begin{tikzpicture}
+            \node[anchor=center] at (0,0) {
+                \color{lightgray}
+                \textbf{Email:} """ + email + r""" \quad 
+                \textbf{Phone:} """ + phone + r"""
+            };
+        \end{tikzpicture}
+    \end{center}
+    
+    \vspace{1cm}
+}
 
 \begin{document}
 
-\begin{letter}{}
+\letterheader
 
 """ + content + r"""
 
-\end{letter}
+\vspace{2cm}
+
+\begin{flushright}
+    \begin{minipage}{4cm}
+        \color{darkgray}
+        Sincerely,\\[0.8cm]
+        {\bfseries """ + name + r"""}
+    \end{minipage}
+\end{flushright}
+
 \end{document}
 """
         return latex_template

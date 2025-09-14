@@ -9,6 +9,7 @@ __pycache__/
 *.pyo
 *.egg-info/
 .venv/
+venv/
 .env
 
 # Temporary files
@@ -37,3 +38,9 @@ data/
 !package-lock.json
 !tsconfig.json
 !components.json
+
+# Test files and generated outputs
+test_*.py
+comparison_test.py
+output/
+templates/
