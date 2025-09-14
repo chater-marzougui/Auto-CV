@@ -10,7 +10,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Loader2, FileText, Download, Github } from "lucide-react";
-import type { Project, MatchedProject } from "@/types/project";
+import type { Project } from "@/types/project";
 import { toast } from "sonner";
 import { config } from "@/config";
 
@@ -110,14 +110,50 @@ export function CVGenerator() {
   return (
     <div className="flex flex-col h-full">
       {/* Header */}
-      <div className="border-b border-border p-6">
-        <h1 className="font-heading text-2xl font-bold text-foreground">
-          CV Generator
-        </h1>
-        <p className="text-muted-foreground mt-1">
-          Create a professional CV by selecting your best projects and entering
-          your personal information
-        </p>
+      <div className="flex justify-between items-center border-b border-border p-6">
+        <div className="space-y-1">
+          <h1 className="font-heading text-2xl font-bold text-foreground">
+            CV Generator
+          </h1>
+          <p className="text-muted-foreground mt-1">
+            Create a professional CV by selecting your best projects and entering
+            your personal information
+          </p>
+        </div>
+
+        <div className="flex gap-4">
+          <Button
+            onClick={generateCV}
+            disabled={isGenerating || selectedProjects.length === 0}
+            className="flex-1 cursor-pointer"
+            size="lg"
+          >
+            {isGenerating ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Generating CV...
+              </>
+            ) : (
+              <>
+                <FileText className="mr-2 h-4 w-4" />
+                Generate CV
+              </>
+            )}
+          </Button>
+
+          {downloadUrl && (
+            <Button asChild variant="secondary" size="lg">
+              <a
+                href={`${config.api.baseUrl}${downloadUrl}`}
+                target="_blank"
+                rel="noreferrer"
+              >
+                <Download className="mr-2 h-4 w-4" />
+                Download CV
+              </a>
+            </Button>
+          )}
+        </div>
       </div>
 
       {/* Content */}
@@ -208,68 +244,6 @@ export function CVGenerator() {
                     </div>
                   );
                 })}
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Generate CV */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <FileText className="h-5 w-5" />
-              Generate Your CV
-            </CardTitle>
-            <CardDescription>
-              Create a professional PDF CV with your selected projects and
-              information
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex gap-4">
-              <Button
-                onClick={generateCV}
-                disabled={isGenerating || selectedProjects.length === 0}
-                className="flex-1"
-                size="lg"
-              >
-                {isGenerating ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Generating CV...
-                  </>
-                ) : (
-                  <>
-                    <FileText className="mr-2 h-4 w-4" />
-                    Generate CV
-                  </>
-                )}
-              </Button>
-
-              {downloadUrl && (
-                <Button asChild variant="secondary" size="lg">
-                  <a
-                    href={`${config.api.baseUrl}${downloadUrl}`}
-                    target="_blank"
-                    rel="noreferrer"
-                  >
-                    <Download className="mr-2 h-4 w-4" />
-                    Download CV
-                  </a>
-                </Button>
-              )}
-            </div>
-
-            {selectedProjects.length > 0 && (
-              <div className="pt-4 border-t border-border">
-                <h4 className="font-medium mb-2">Selected Projects:</h4>
-                <div className="flex flex-wrap gap-2">
-                  {selectedProjects.map((project, index) => (
-                    <Badge key={index} variant="secondary">
-                      {project.name}
-                    </Badge>
-                  ))}
-                </div>
               </div>
             )}
           </CardContent>

@@ -57,7 +57,7 @@ class CoverLetterGenerator:
             
             # Create LaTeX content with the generated text
             
-            latex_content = self._create_latex_document(cover_letter_content, personal_info={})
+            latex_content = self._create_latex_document(cover_letter_content, personal_info=request.personal_info)
             print("Generated LaTeX content for cover letter.")
             
             # Generate PDF
@@ -91,11 +91,11 @@ class CoverLetterGenerator:
         Create LaTeX document with generated content using professional template
         """
         # Extract personal info with defaults
-        name = 'Chater Marzougui'
-        email = 'chater.marzougui@supcom.tn'
-        phone = '+216 28 356 927'
-        title = 'Software Engineering Student'
-        
+        name = personal_info.first_name + ' ' + personal_info.last_name if personal_info else 'Your Name'
+        email = personal_info.email if personal_info else 'random@email.com'
+        phone = personal_info.phone if personal_info else '+123 456 789'
+        title = personal_info.title if personal_info else 'Worker'
+
         formatted_content = self.fix_latex_special_chars(content)
 
         latex_template = r"""
@@ -116,6 +116,16 @@ class CoverLetterGenerator:
 \definecolor{primaryblue}{RGB}{41, 128, 185}
 \definecolor{darkgray}{RGB}{64, 64, 64}
 \definecolor{lightgray}{RGB}{128, 128, 128}
+
+% Blue Links
+\usepackage{hyperref}
+\hypersetup{
+    colorlinks=true,
+    linkcolor=primaryblue,
+    urlcolor=primaryblue,
+    citecolor=primaryblue,
+    filecolor=primaryblue
+}
 
 % Remove page numbering
 \pagestyle{empty}
@@ -154,16 +164,6 @@ class CoverLetterGenerator:
 \letterheader
 
 """ + formatted_content + r"""
-
-\vspace{2cm}
-
-\begin{flushright}
-    \begin{minipage}{4cm}
-        \color{darkgray}
-        Sincerely,\\[0.8cm]
-        {\bfseries """ + name + r"""}
-    \end{minipage}
-\end{flushright}
 
 \end{document}
 """
@@ -215,18 +215,8 @@ class CoverLetterGenerator:
             raise RuntimeError(f"LaTeX compilation error: {str(e)}")
         
     def fix_latex_special_chars(self, text: str) -> str:
-        """
-        Fix special characters in LaTeX by escaping them if not already escaped.
-        
-        Args:
-            text (str): The input text that may contain unescaped LaTeX special characters
-            
-        Returns:
-            str: Text with properly escaped LaTeX special characters
-        """
         import re
         
-        # Define the special characters and their LaTeX escaped versions
         special_chars = {
             '&': r'\&',
             '%': r'\%', 
@@ -235,22 +225,16 @@ class CoverLetterGenerator:
             '^': r'\^{}',
             '_': r'\_',
             '~': r'\~{}',
-            '\\': r'\textbackslash{}',  # Handle backslash specially
         }
         
         result = text
         
         for char, escaped in special_chars.items():
-            if char == '\\':
-                # Special handling for backslash - only escape standalone backslashes
-                # that aren't part of existing LaTeX commands
-                pattern = r'(?<!\\)\\(?![a-zA-Z{}&%$#^_~])'
-                result = re.sub(pattern, escaped, result)
-            else:
-                # Create pattern to match unescaped characters
-                # Look for the character not preceded by backslash
-                pattern = f'(?<!\\\\){re.escape(char)}'
-                result = re.sub(pattern, escaped, result)
+            pattern = f'(?<!\\\\){re.escape(char)}'
+            result = re.sub(pattern, escaped, result)
+        
+        backslash_pattern = r'(?<!\\)\\(?![a-zA-Z\\&%$#^_~{}])'
+        result = re.sub(backslash_pattern, r'\\textbackslash{}', result)
         
         return result
     

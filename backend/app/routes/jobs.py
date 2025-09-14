@@ -8,7 +8,7 @@ from app.services.gemini_service import GeminiService
 
 router = APIRouter()
 class JobDescriptionInput(BaseModel):
-    job_description: dict | str
+    job_description: dict
 
 class ProjectVisibilityUpdate(BaseModel):
     hidden_from_search: bool

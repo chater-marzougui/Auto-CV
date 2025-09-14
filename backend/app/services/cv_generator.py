@@ -27,7 +27,8 @@ class CVGenerator:
             tech_str = self._escape_latex(tech_str)
             
             # Escape LaTeX special characters in project data
-            project_name = self._escape_latex(project.name)
+            project_name = self._format_project_name(project.name)
+            project_name = self._escape_latex(project_name)
             project_description = self._escape_latex(project.three_liner)
             project_url = project.url  # URLs typically don't need escaping in href
             
@@ -68,10 +69,6 @@ class CVGenerator:
             
             # Replace the projects content
             latex_content = re.sub(pattern, replace_projects, latex_content, flags=re.DOTALL)
-            
-            # Write the modified LaTeX content to test.tex for inspection
-            with open(os.path.join(self.templates_dir, "test.tex"), 'w', encoding='utf-8') as f:
-                f.write(latex_content)
             
             # Generate PDF
             pdf_path = self._compile_latex(latex_content, "cv")
@@ -194,3 +191,10 @@ Check the test.tex file in {self.templates_dir} for syntax issues."""
             text = text.replace(char, escape)
         
         return text
+    
+    def _format_project_name(self, full_name: str) -> str:
+        """
+        Format Project Name 
+        """
+        parts = full_name.strip().replace('_', ' ').replace('-', ' ').split()
+        return ' '.join(word.capitalize() for word in parts)

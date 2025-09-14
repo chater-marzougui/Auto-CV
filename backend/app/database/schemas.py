@@ -18,6 +18,10 @@ class PersonalInfoBase(BaseModel):
     skills: Optional[Dict[str, List[str]]] = None
     experience: Optional[List[Dict[str, Any]]] = None
     education: Optional[List[Dict[str, Any]]] = None
+    
+    model_config = {
+        "from_attributes": True
+    }
 
 
 class PersonalInfoCreate(PersonalInfoBase):

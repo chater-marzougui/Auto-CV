@@ -17,9 +17,7 @@ import { config } from "@/config";
 import { toast } from "sonner";
 
 interface JobAnalysisResult {
-  required_technologies: string[];
-  experience_level: string;
-  analysis_summary: string;
+  job_analysis_result: JobDescriptionResult;
   matched_projects: Array<{
     name: string;
     similarity_score: number;
@@ -28,10 +26,22 @@ interface JobAnalysisResult {
   cover_letter_download_url?: string;
 }
 
+interface JobDescriptionResult {
+    title: string,
+    company: string,
+    required_technologies: string[],
+    experience_level: string,
+    soft_skills: string[],
+    analysis_summary: string,
+    full_description: string,
+    requirements: string
+}
+
 interface MatchedProject {
   project: {
     name: string;
     description: string;
+    three_liner: string;
     url: string;
     technologies: string[];
   };
@@ -39,21 +49,8 @@ interface MatchedProject {
 }
 
 interface GenerateApplicationRequest {
-  job_description: string;
-  personal_info: {
-    first_name: string;
-    last_name: string;
-    email: string;
-    phone: string;
-    address: string;
-    city: string;
-    postal_code: string;
-    title: string;
-    summary: string;
-    skills: Record<string, string[]>;
-    experience: unknown[];
-    education: unknown[];
-  };
+  job_description: JobDescriptionResult;
+  personal_info_id: string | number | null;
   selected_projects?: MatchedProject[];
   top_k?: number;
 }
@@ -62,6 +59,7 @@ export function JobAnalysis() {
   const [jobDescription, setJobDescription] = useState("");
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
+  const userId = localStorage.getItem("user_id") || null;
   const [analysisResult, setAnalysisResult] =
     useState<JobAnalysisResult | null>(null);
   const [matchedProjects, setMatchedProjects] = useState<MatchedProject[]>([]);
@@ -81,8 +79,6 @@ export function JobAnalysis() {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            title: "Job Position",
-            company: "Company",
             description: jobDescription,
           }),
         }
@@ -98,7 +94,9 @@ export function JobAnalysis() {
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ job_description: jobDescription }),
+          body: JSON.stringify({
+            job_description: analysis
+           }),
         }
       );
 
@@ -110,7 +108,7 @@ export function JobAnalysis() {
       }
 
       setAnalysisResult({
-        ...analysis,
+        job_analysis_result: analysis,
         matched_projects: matchedProjectsData.map((mp: MatchedProject) => ({
           name: mp.project.name,
           similarity_score: mp.similarity_score,
@@ -142,35 +140,26 @@ export function JobAnalysis() {
   };
 
   const generateApplication = async () => {
+    if (!userId) {
+      toast.error("User ID not found. Please fill in your personal information.");
+      return;
+    }
+
     if (selectedProjects.length === 0) {
       toast.error("Please select at least one project");
+      return;
+    }
+
+    if (!analysisResult) {
+      toast.error("Please analyze a job description first");
       return;
     }
 
     setIsGenerating(true);
     try {
       const requestBody: GenerateApplicationRequest = {
-        job_description: jobDescription,
-        personal_info: {
-          first_name: "John",
-          last_name: "Doe",
-          email: "john.doe@example.com",
-          phone: "+1-555-0123",
-          address: "123 Tech Street",
-          city: "San Francisco",
-          postal_code: "94105",
-          title: "Software Developer",
-          summary:
-            "Experienced software developer with expertise in modern web technologies.",
-          skills: {
-            "Programming Languages": ["Python", "JavaScript", "TypeScript"],
-            "Web Frameworks": ["React", "FastAPI", "Next.js"],
-            Databases: ["PostgreSQL", "MongoDB"],
-            Tools: ["Docker", "Git", "AWS"],
-          },
-          experience: [],
-          education: [],
-        },
+        personal_info_id: userId,
+        job_description: analysisResult.job_analysis_result,
       };
 
       // If projects are selected, pass them instead of using top_k
@@ -249,7 +238,7 @@ export function JobAnalysis() {
               <Button
                 onClick={analyzeJob}
                 disabled={isAnalyzing || !jobDescription.trim()}
-                className="flex-1"
+                className="cursor-pointer flex-1"
               >
                 {isAnalyzing ? (
                   <>
@@ -265,6 +254,7 @@ export function JobAnalysis() {
               </Button>
               {analysisResult && (
                 <Button
+                  className="cursor-pointer flex-1"
                   onClick={generateApplication}
                   disabled={isGenerating || selectedProjects.length === 0}
                   variant="secondary"
@@ -298,7 +288,7 @@ export function JobAnalysis() {
                 <div>
                   <h4 className="font-medium mb-2">Required Technologies</h4>
                   <div className="flex flex-wrap gap-2">
-                    {analysisResult.required_technologies.map((tech, index) => (
+                    {analysisResult.job_analysis_result.required_technologies.map((tech, index) => (
                       <Badge key={index} variant="secondary">
                         {tech}
                       </Badge>
@@ -309,14 +299,14 @@ export function JobAnalysis() {
                 <div>
                   <h4 className="font-medium mb-2">Experience Level</h4>
                   <Badge variant="outline">
-                    {analysisResult.experience_level}
+                    {analysisResult.job_analysis_result.experience_level}
                   </Badge>
                 </div>
 
                 <div>
                   <h4 className="font-medium mb-2">Summary</h4>
                   <p className="text-sm text-muted-foreground">
-                    {analysisResult.analysis_summary}
+                    {analysisResult.job_analysis_result.analysis_summary}
                   </p>
                 </div>
               </CardContent>
@@ -357,9 +347,9 @@ export function JobAnalysis() {
                                 {(matchedProject.similarity_score * 100).toFixed(1)}% match
                               </Badge>
                             </div>
-                            {matchedProject.project.description && (
+                            {matchedProject.project.three_liner && (
                               <p className="text-sm text-muted-foreground mt-1">
-                                {matchedProject.project.description}
+                                {matchedProject.project.three_liner}
                               </p>
                             )}
                             {matchedProject.project.technologies && matchedProject.project.technologies.length > 0 && (

@@ -2,6 +2,8 @@ from pydantic import BaseModel
 from typing import Dict, List, Optional, Any
 from datetime import datetime
 
+from app.database.schemas import PersonalInfoBase
+
 class Project(BaseModel):
     name: str
     url: str
@@ -21,10 +23,7 @@ class Project(BaseModel):
     hidden_from_search: bool = False  # New field to hide project from similarity search
     
 class JobDescription(BaseModel):
-    title: str
-    company: str
     description: str
-    requirements: Optional[str] = None
     
 class MatchedProject(BaseModel):
     project: Project
@@ -32,18 +31,17 @@ class MatchedProject(BaseModel):
 
 class CVGenerationRequest(BaseModel):
     matched_projects: List[MatchedProject]
-    personal_info: Optional[dict] = None
+    personal_info: Optional[PersonalInfoBase] = None
     template_path: Optional[str] = None
     
 class CoverLetterRequest(BaseModel):
     job_description: str
     matched_projects: List[MatchedProject]
-    personal_info: dict
+    personal_info: PersonalInfoBase
     template_path: Optional[str] = None
     
 class GenerateFullApplicationRequest(BaseModel):
-    job_description: dict | str
-    personal_info_id: Optional[int] = None  # Use DB personal info instead of direct input
-    personal_info: Optional[Dict[str, Any]] = None  # Fallback for backward compatibility
+    job_description: dict
+    personal_info_id: Optional[int] = None
     top_k: int = 4
     selected_projects: Optional[List[MatchedProject]] = None

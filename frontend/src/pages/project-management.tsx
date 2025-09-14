@@ -297,7 +297,7 @@ export default function ProjectManagement() {
             variant="outline"
             size="sm"
             onClick={() => setShowProgress(!showProgress)}
-            className="flex items-center gap-2"
+            className="flex items-center gap-2 cursor-pointer"
             disabled={!currentClientId}
           >
             <Activity className="h-4 w-4" />
@@ -329,6 +329,7 @@ export default function ProjectManagement() {
               <Button
                 onClick={scrapeGithub}
                 disabled={isScraping || !githubUsername.trim()}
+                className="cursor-pointer"
               >
                 {isScraping ? (
                   <>

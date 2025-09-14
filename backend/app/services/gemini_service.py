@@ -101,7 +101,7 @@ class GeminiService:
         response = self.fast_model.generate_content([prompt])
         json_response = self._extract_json(response.text)
 
-        return json_response
+        return {**json_response, "full_description": job_description}
 
     def generate_cover_letter(self, template_text: str, job_description: str, projects: list) -> tuple[str, str]:
         """
@@ -144,8 +144,9 @@ class GeminiService:
     
     IMPORTANT:
     1. The text will be used in a LaTeX template so avoid any special characters that could break the formatting
-    2. You can use latex commands for formatting like \\textbf{{}} for bold and try to make empty lines between paragraphs.
+    2. You can use latex commands for formatting like textbf for bold and try to make empty lines between paragraphs.
     2. don't include package imports or document structure just the letter content
+    4. Don't make the cover letter long a maximum of 3 paragraphs with max 300 words for the entire letter
     
     return a json with two keys and no other text just the json:
     {{

@@ -8,6 +8,7 @@ from app.services.letter_generator import CoverLetterGenerator
 from app.services.embeddings import EmbeddingService
 from app.database.database import get_db
 from app.database import crud, schemas
+from app.database.schemas import PersonalInfoBase
 
 router = APIRouter()
 
@@ -56,33 +57,17 @@ def generate_full_application(request: GenerateFullApplicationRequest, db: Sessi
     """
     Generate both CV and cover letter for a complete job application
     """
+    if not request.personal_info_id:
+        raise HTTPException(status_code=400, detail="Personal Info ID is required")
+    
     try:
-        # Get personal info from database or use provided fallback
-        personal_info_data = None
-        if request.personal_info_id:
-            personal_info_db = crud.PersonalInfoCRUD.get(db, request.personal_info_id)
-            if not personal_info_db:
-                raise HTTPException(status_code=404, detail="Personal info not found in database")
-            # Convert database model to dict format expected by generators
-            personal_info_data = {
-                "first_name": personal_info_db.first_name,
-                "last_name": personal_info_db.last_name,
-                "email": personal_info_db.email,
-                "phone": personal_info_db.phone,
-                "address": personal_info_db.address,
-                "city": personal_info_db.city,
-                "postal_code": personal_info_db.postal_code,
-                "title": personal_info_db.title,
-                "summary": personal_info_db.summary,
-                "skills": personal_info_db.skills or {},
-                "experience": personal_info_db.experience or [],
-                "education": personal_info_db.education or []
-            }
-        elif request.personal_info:
-            # Fallback to provided personal_info for backward compatibility
-            personal_info_data = request.personal_info
-        else:
-            raise HTTPException(status_code=400, detail="Either personal_info_id or personal_info must be provided")
+        # Get personal info from database
+        personal_info_sql = crud.PersonalInfoCRUD.get(db, request.personal_info_id)
+        if not personal_info_sql:
+            raise HTTPException(status_code=404, detail="Personal info not found in database")
+
+        personal_info_data = PersonalInfoBase.model_validate(personal_info_sql)
+
 
         # Step 1: Get matching projects (use selected projects if provided, otherwise find them)
         if request.selected_projects:
@@ -110,12 +95,6 @@ def generate_full_application(request: GenerateFullApplicationRequest, db: Sessi
             company_name = jd.get("company", "Unknown Company")
             job_desc_text = jd.get("description", "")
             job_requirements = jd.get("requirements", "")
-        else:
-            job_description = str(jd)
-            job_title = "Unknown Position"
-            company_name = "Unknown Company"
-            job_desc_text = job_description
-            job_requirements = ""
         
         # Step 2: Create job application record if personal_info_id is provided
         job_app_id = None

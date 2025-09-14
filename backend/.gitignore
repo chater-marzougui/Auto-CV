@@ -60,4 +60,3 @@ data/
 *.pdf
 *.tex
 *.db
-app_data.db
