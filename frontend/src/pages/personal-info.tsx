@@ -1,26 +1,23 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
-import { FileText, User, Mail, Phone, MapPin, Briefcase } from "lucide-react"
-
-interface PersonalInfo {
-  first_name: string
-  last_name: string
-  email: string
-  phone: string
-  address: string
-  city: string
-  postal_code: string
-  title: string
-  summary: string
-}
+import { useEffect, useState } from "react";
+import { Button } from "@/components/ui/button";
+import { FileText } from "lucide-react";
+import { toast } from "sonner";
+import { config } from "@/config";
+import { BasicInfoCard } from "@/components/profile/BasicInfoCard";
+import { SkillsCard } from "@/components/profile/SkillsCard";
+import { ExperienceCard } from "@/components/profile/ExperienceCard";
+import { EducationCard } from "@/components/profile/EducationCard";
+import { InstructionsCard } from "@/components/profile/InstructionsCard";
+import type { PersonalInfo } from "@/types/PersonalInfo";
 
 export function PersonalInfo() {
+  const [isUpdating, setIsUpdating] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [userId, setUserId] = useState<string | null>(
+    localStorage.getItem("user_id") ?? null
+  );
   const [personalInfo, setPersonalInfo] = useState<PersonalInfo>({
     first_name: "",
     last_name: "",
@@ -31,168 +28,174 @@ export function PersonalInfo() {
     postal_code: "",
     title: "",
     summary: "",
-  })
+    skills: {},
+    experience: [],
+    education: [],
+  });
 
-  const updatePersonalInfo = (field: keyof PersonalInfo, value: string) => {
-    setPersonalInfo((prev) => ({ ...prev, [field]: value }))
+  const updatePersonalInfo = (field: keyof PersonalInfo, value: any) => {
+    setPersonalInfo((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const handleSubmit = async () => {
+    setIsUpdating(true);
+    try {
+      let response;
+      if (userId) {
+        // Update existing
+        response = await fetch(
+          `${config.api.baseUrl}${config.api.endpoints.personalInfo}/${userId}`,
+          {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(personalInfo),
+          }
+        );
+      } else {
+        // Create new
+        response = await fetch(
+          `${config.api.baseUrl}${config.api.endpoints.personalInfo}/`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(personalInfo),
+          }
+        );
+      }
+
+      if (!response.ok) throw new Error("Failed to save profile");
+
+      const result = await response.json();
+
+      if (result?.id) {
+        localStorage.setItem("user_id", result.id);
+        setUserId(result.id);
+      }
+
+      toast.success("Profile Updated Successfully");
+    } catch (error) {
+      toast("Failed to update profile", {
+        description: error instanceof Error ? `: ${error.message}` : "",
+      });
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
+  const loadProfile = async () => {
+    setIsLoading(true);
+    try {
+      const response = await fetch(
+        `${config.api.baseUrl}${config.api.endpoints.personalInfo}/${userId}`,
+        {
+          method: "GET",
+          headers: { "Content-Type": "application/json" },
+        }
+      );
+
+      if (response.ok) {
+        const data = await response.json();
+        setPersonalInfo({
+          first_name: data.first_name || "",
+          last_name: data.last_name || "",
+          email: data.email || "",
+          phone: data.phone || "",
+          address: data.address || "",
+          city: data.city || "",
+          postal_code: data.postal_code || "",
+          title: data.title || "",
+          summary: data.summary || "",
+          skills: data.skills || {},
+          experience: data.experience || [],
+          education: data.education || [],
+        });
+      }
+    } catch (error) {
+      console.error("Failed to load personal information:", error);
+      toast.error("Failed to load personal information");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleRefresh = async () => {
+    setIsUpdating(true);
+    await loadProfile();
+    setIsUpdating(false);
+  };
+
+  useEffect(() => {
+    if (userId) {
+      loadProfile();
+    }
+  }, [userId]);
+
+  if (isLoading) {
+    return (
+      <div className="flex flex-1 items-center justify-center h-full">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-4 border-b-4 border-primary"></div>
+        <span className="ml-4 text-lg text-muted-foreground">Loading...</span>
+      </div>
+    );
   }
 
   return (
     <div className="flex flex-col h-full">
       {/* Header */}
-      <div className="border-b border-border p-6">
-        <h1 className="font-heading text-2xl font-bold text-foreground">CV Generator</h1>
-        <p className="text-muted-foreground mt-1">Configure your personal information for CV generation</p>
+      <div className="flex justify-between items-center border-b border-border p-6">
+        <div>
+          <h1 className="font-heading text-2xl font-bold text-foreground">
+            Personal Information
+          </h1>
+          <p className="text-muted-foreground mt-1">
+            Configure your personal information for CV generation
+          </p>
+        </div>
+
+        <div className="flex gap-4 pt-4">
+          <Button
+            className="cursor-pointer"
+            onClick={handleSubmit}
+            disabled={isUpdating}
+          >
+            <FileText className="mr-2 h-4 w-4" />
+            {isUpdating ? "Saving..." : "Save Profile"}
+          </Button>
+          <Button
+            className="cursor-pointer"
+            variant="outline"
+            onClick={handleRefresh}
+            disabled={isUpdating}
+          >
+            Refresh
+          </Button>
+        </div>
       </div>
 
       {/* Content */}
       <div className="flex-1 p-6 space-y-6 overflow-auto">
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <User className="h-5 w-5" />
-              Personal Information
-            </CardTitle>
-            <CardDescription>This information will be used in your generated CVs and cover letters</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            {/* Name */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="first_name">First Name</Label>
-                <Input
-                  id="first_name"
-                  value={personalInfo.first_name}
-                  onChange={(e) => updatePersonalInfo("first_name", e.target.value)}
-                  placeholder="John"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="last_name">Last Name</Label>
-                <Input
-                  id="last_name"
-                  value={personalInfo.last_name}
-                  onChange={(e) => updatePersonalInfo("last_name", e.target.value)}
-                  placeholder="Doe"
-                />
-              </div>
-            </div>
-
-            {/* Contact */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="email" className="flex items-center gap-2">
-                  <Mail className="h-4 w-4" />
-                  Email
-                </Label>
-                <Input
-                  id="email"
-                  type="email"
-                  value={personalInfo.email}
-                  onChange={(e) => updatePersonalInfo("email", e.target.value)}
-                  placeholder="john.doe@example.com"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="phone" className="flex items-center gap-2">
-                  <Phone className="h-4 w-4" />
-                  Phone
-                </Label>
-                <Input
-                  id="phone"
-                  value={personalInfo.phone}
-                  onChange={(e) => updatePersonalInfo("phone", e.target.value)}
-                  placeholder="+1-555-0123"
-                />
-              </div>
-            </div>
-
-            {/* Address */}
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="address" className="flex items-center gap-2">
-                  <MapPin className="h-4 w-4" />
-                  Address
-                </Label>
-                <Input
-                  id="address"
-                  value={personalInfo.address}
-                  onChange={(e) => updatePersonalInfo("address", e.target.value)}
-                  placeholder="123 Tech Street"
-                />
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="city">City</Label>
-                  <Input
-                    id="city"
-                    value={personalInfo.city}
-                    onChange={(e) => updatePersonalInfo("city", e.target.value)}
-                    placeholder="San Francisco"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="postal_code">Postal Code</Label>
-                  <Input
-                    id="postal_code"
-                    value={personalInfo.postal_code}
-                    onChange={(e) => updatePersonalInfo("postal_code", e.target.value)}
-                    placeholder="94105"
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Professional Info */}
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="title" className="flex items-center gap-2">
-                  <Briefcase className="h-4 w-4" />
-                  Professional Title
-                </Label>
-                <Input
-                  id="title"
-                  value={personalInfo.title}
-                  onChange={(e) => updatePersonalInfo("title", e.target.value)}
-                  placeholder="Software Developer"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="summary">Professional Summary</Label>
-                <Textarea
-                  id="summary"
-                  value={personalInfo.summary}
-                  onChange={(e) => updatePersonalInfo("summary", e.target.value)}
-                  placeholder="Experienced software developer with expertise in modern web technologies..."
-                  className="min-h-[100px]"
-                />
-              </div>
-            </div>
-
-            <div className="flex gap-4 pt-4">
-              <Button className="flex-1">
-                <FileText className="mr-2 h-4 w-4" />
-                Save Profile
-              </Button>
-              <Button variant="outline">Load Saved Profile</Button>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Instructions */}
-        <Card>
-          <CardHeader>
-            <CardTitle>How to Use</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3 text-sm text-muted-foreground">
-            <p>1. Fill in your personal information above</p>
-            <p>2. Go to the Job Analysis tab and paste a job description</p>
-            <p>3. Click "Analyze Job" to see matching projects</p>
-            <p>4. Click "Generate Application" to create your tailored CV and cover letter</p>
-            <p>5. Download the generated documents from the Job Analysis page</p>
-          </CardContent>
-        </Card>
+        <BasicInfoCard 
+          personalInfo={personalInfo} 
+          updatePersonalInfo={updatePersonalInfo} 
+        />
+        
+        <SkillsCard 
+          skills={personalInfo.skills || {}} 
+          updatePersonalInfo={updatePersonalInfo} 
+        />
+        
+        <ExperienceCard 
+          experience={personalInfo.experience || []} 
+          updatePersonalInfo={updatePersonalInfo} 
+        />
+        
+        <EducationCard 
+          education={personalInfo.education || []} 
+          updatePersonalInfo={updatePersonalInfo} 
+        />
+        
+        <InstructionsCard />
       </div>
     </div>
-  )
+  );
 }

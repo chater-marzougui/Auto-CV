@@ -13,7 +13,9 @@ export const config = {
       generateCoverLetter: "/api/v1/generate-cover-letter",
       toggleProjectVisibility: "/api/v1/projects/{projectName}/visibility",
       updateProject: "/api/v1/projects/{projectName}/update",
-      updateProjectContent: "/api/v1/projects/{projectName}/content"
+      updateProjectContent: "/api/v1/projects/{projectName}/content",
+      personalInfo: "/api/v1/personal-info",
+      updatePersonalInfo: "/api/v1/personal-info",
     }
   },
   
