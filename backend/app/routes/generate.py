@@ -9,8 +9,26 @@ from app.services.embeddings import EmbeddingService
 from app.database.database import get_db
 from app.database import crud, schemas
 from app.database.schemas import PersonalInfoBase
+from datetime import datetime
 
 router = APIRouter()
+
+# Global websocket manager - will be set from main.py
+websocket_manager = None
+
+async def send_websocket_progress(client_id: str, message: str, step: str, current: int = 0, total: int = 0):
+    """Helper function to send websocket progress updates"""
+    if websocket_manager and client_id:
+        progress_data = {
+            "type": "progress",
+            "message": message,
+            "step": step,
+            "current": current,
+            "total": total,
+            "repo_name": "",
+            "timestamp": datetime.now().isoformat(),
+        }
+        await websocket_manager.send_progress(client_id, progress_data)
 
 @router.post("/generate-cv")
 def generate_cv(request: CVGenerationRequest):
@@ -53,7 +71,7 @@ def generate_cover_letter(request: CoverLetterRequest):
         raise HTTPException(status_code=500, detail=f"Error generating cover letter: {str(e)}")
 
 @router.post("/generate-full-application")
-def generate_full_application(request: GenerateFullApplicationRequest, db: Session = Depends(get_db)):
+async def generate_full_application(request: GenerateFullApplicationRequest, db: Session = Depends(get_db)):
     """
     Generate both CV and cover letter for a complete job application
     """
@@ -61,18 +79,62 @@ def generate_full_application(request: GenerateFullApplicationRequest, db: Sessi
         raise HTTPException(status_code=400, detail="Personal Info ID is required")
     
     try:
+        client_id = request.client_id
+        
+        # Send websocket update
+        if client_id:
+            await send_websocket_progress(
+                client_id, 
+                "Starting application generation...", 
+                "initializing", 
+                0, 
+                5
+            )
+        
         # Get personal info from database
         personal_info_sql = crud.PersonalInfoCRUD.get(db, request.personal_info_id)
         if not personal_info_sql:
+            if client_id:
+                await send_websocket_progress(
+                    client_id, 
+                    "Personal info not found in database", 
+                    "error", 
+                    0, 
+                    5
+                )
             raise HTTPException(status_code=404, detail="Personal info not found in database")
 
         personal_info_data = PersonalInfoBase.model_validate(personal_info_sql)
 
+        if client_id:
+            await send_websocket_progress(
+                client_id, 
+                "Personal information loaded successfully", 
+                "processing", 
+                1, 
+                5
+            )
 
         # Step 1: Get matching projects (use selected projects if provided, otherwise find them)
         if request.selected_projects:
             matched_projects = request.selected_projects
+            if client_id:
+                await send_websocket_progress(
+                    client_id, 
+                    f"Using {len(matched_projects)} selected projects", 
+                    "processing", 
+                    2, 
+                    5
+                )
         else:
+            if client_id:
+                await send_websocket_progress(
+                    client_id, 
+                    "Finding matching projects...", 
+                    "matching", 
+                    1, 
+                    5
+                )
             embedding_service = EmbeddingService()
             jd = request.job_description
             if isinstance(jd, dict):
@@ -80,8 +142,25 @@ def generate_full_application(request: GenerateFullApplicationRequest, db: Sessi
             else:
                 job_description = str(jd)
             matched_projects = embedding_service.find_matching_projects(job_description, request.top_k)
+            
+            if client_id:
+                await send_websocket_progress(
+                    client_id, 
+                    f"Found {len(matched_projects)} matching projects", 
+                    "processing", 
+                    2, 
+                    5
+                )
         
         if not matched_projects:
+            if client_id:
+                await send_websocket_progress(
+                    client_id, 
+                    "No matching projects found", 
+                    "error", 
+                    0, 
+                    5
+                )
             raise HTTPException(
                 status_code=404,
                 detail="No matching projects found. Please scrape GitHub repositories first."
@@ -110,6 +189,15 @@ def generate_full_application(request: GenerateFullApplicationRequest, db: Sessi
             job_app_id = job_app.id
         
         # Step 3: Generate CV
+        if client_id:
+            await send_websocket_progress(
+                client_id, 
+                "Generating CV...", 
+                "cv_generation", 
+                3, 
+                5
+            )
+            
         cv_request = CVGenerationRequest(
             matched_projects=matched_projects,
             personal_info=personal_info_data
@@ -118,7 +206,25 @@ def generate_full_application(request: GenerateFullApplicationRequest, db: Sessi
         cv_generator = CVGenerator()
         cv_path = cv_generator.generate_cv(cv_request)
         
+        if client_id:
+            await send_websocket_progress(
+                client_id, 
+                "CV generated successfully", 
+                "processing", 
+                4, 
+                5
+            )
+        
         # Step 4: Generate Cover Letter
+        if client_id:
+            await send_websocket_progress(
+                client_id, 
+                "Generating cover letter...", 
+                "cover_letter_generation", 
+                4, 
+                5
+            )
+            
         print("Generating cover letter...")
         letter_request = CoverLetterRequest(
             job_description=job_description,
@@ -152,6 +258,15 @@ def generate_full_application(request: GenerateFullApplicationRequest, db: Sessi
                 matched_projects_data
             )
         
+        if client_id:
+            await send_websocket_progress(
+                client_id, 
+                "Application generated successfully!", 
+                "completed", 
+                5, 
+                5
+            )
+        
         return {
             "message": "Full application generated successfully",
             "job_application_id": job_app_id,
@@ -174,6 +289,14 @@ def generate_full_application(request: GenerateFullApplicationRequest, db: Sessi
     except HTTPException:
         raise
     except Exception as e:
+        if hasattr(request, 'client_id') and request.client_id:
+            await send_websocket_progress(
+                request.client_id, 
+                f"Error generating application: {str(e)}", 
+                "error", 
+                0, 
+                5
+            )
         raise HTTPException(status_code=500, detail=f"Error generating full application: {str(e)}")
 
 @router.get("/download/{filename}")

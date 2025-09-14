@@ -1,14 +1,34 @@
 from fastapi import APIRouter, HTTPException, BackgroundTasks
-from typing import List
+from typing import List, Optional
 from pydantic import BaseModel
 from app.models.project import JobDescription, MatchedProject
 from app.services.embeddings import EmbeddingService
 from app.services.github_scraper import GitHubScraper
 from app.services.gemini_service import GeminiService
+import json
+from datetime import datetime
 
 router = APIRouter()
+
+# Global websocket manager - will be set from main.py
+websocket_manager = None
+
+async def send_websocket_progress(client_id: str, message: str, step: str, current: int = 0, total: int = 0):
+    """Helper function to send websocket progress updates"""
+    if websocket_manager and client_id:
+        progress_data = {
+            "type": "progress",
+            "message": message,
+            "step": step,
+            "current": current,
+            "total": total,
+            "repo_name": "",
+            "timestamp": datetime.now().isoformat(),
+        }
+        await websocket_manager.send_progress(client_id, progress_data)
 class JobDescriptionInput(BaseModel):
     job_description: dict
+    client_id: Optional[str] = None
 
 class ProjectVisibilityUpdate(BaseModel):
     hidden_from_search: bool
@@ -19,11 +39,23 @@ class ProjectContentUpdate(BaseModel):
 
 
 @router.post("/match-projects", response_model=List[MatchedProject])
-def match_projects_to_job(job_description: JobDescriptionInput, top_k: int = 15):
+async def match_projects_to_job(job_description: JobDescriptionInput, top_k: int = 15):
     """
     Match projects to a job description and return the most relevant ones
     """
     try:
+        client_id = job_description.client_id
+        
+        # Send websocket update
+        if client_id:
+            await send_websocket_progress(
+                client_id, 
+                "Starting project matching analysis...", 
+                "matching", 
+                0, 
+                1
+            )
+        
         embedding_service = EmbeddingService()
         jd = job_description.job_description
 
@@ -33,19 +65,54 @@ def match_projects_to_job(job_description: JobDescriptionInput, top_k: int = 15)
         else:
             jd_text = str(jd)
 
+        if client_id:
+            await send_websocket_progress(
+                client_id, 
+                f"Finding top {top_k} matching projects for the job description...", 
+                "processing", 
+                0, 
+                1
+            )
+
         print(f"Finding top {top_k} matching projects for the job description: {jd_text[:50]}...")
         matched_projects = embedding_service.find_matching_projects(jd_text, top_k)
         matched_projects = sorted(matched_projects, key=lambda x: x.similarity_score, reverse=True)
         
         if not matched_projects:
+            if client_id:
+                await send_websocket_progress(
+                    client_id, 
+                    "No matching projects found", 
+                    "error", 
+                    0, 
+                    1
+                )
             raise HTTPException(
                 status_code=404,
                 detail="No matching projects found. Please scrape GitHub repositories first."
             )
         
+        # Send completion update
+        if client_id:
+            await send_websocket_progress(
+                client_id, 
+                f"Found {len(matched_projects)} matching projects", 
+                "completed", 
+                1, 
+                1
+            )
+        
         return matched_projects
 
     except Exception as e:
+        if hasattr(job_description, 'client_id') and job_description.client_id:
+            await send_websocket_progress(
+                job_description.client_id, 
+                f"Error matching projects: {str(e)}", 
+                "error", 
+                0, 
+                1
+            )
         raise HTTPException(status_code=500, detail=f"Error matching projects: {str(e)}")
 
 
@@ -86,20 +153,58 @@ def get_project_details(project_name: str):
         raise HTTPException(status_code=500, detail=f"Error loading project: {str(e)}")
 
 @router.post("/analyze-job")
-def analyze_job_description(job_description: JobDescription):
+async def analyze_job_description(job_description: JobDescription):
     """
     Analyze a job description and extract key requirements/technologies
     """
     try:
+        client_id = job_description.client_id
+        
+        # Send websocket update
+        if client_id:
+            await send_websocket_progress(
+                client_id, 
+                "Starting job description analysis...", 
+                "analyzing", 
+                0, 
+                1
+            )
+        
         gemini_service = GeminiService()
         analysis = gemini_service.job_description_parser(job_description.description)
         
         if not analysis:
+            if client_id:
+                await send_websocket_progress(
+                    client_id, 
+                    "Failed to analyze job description", 
+                    "error", 
+                    0, 
+                    1
+                )
             raise HTTPException(status_code=500, detail="Failed to analyze job description")
+
+        # Send completion update
+        if client_id:
+            await send_websocket_progress(
+                client_id, 
+                "Job description analysis completed successfully", 
+                "completed", 
+                1, 
+                1
+            )
 
         return analysis
         
     except Exception as e:
+        if hasattr(job_description, 'client_id') and job_description.client_id:
+            await send_websocket_progress(
+                job_description.client_id, 
+                f"Error analyzing job description: {str(e)}", 
+                "error", 
+                0, 
+                1
+            )
         raise HTTPException(status_code=500, detail=f"Error analyzing job description: {str(e)}")
 
 @router.post("/refresh-embeddings")

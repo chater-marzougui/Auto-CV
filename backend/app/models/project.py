@@ -24,6 +24,7 @@ class Project(BaseModel):
     
 class JobDescription(BaseModel):
     description: str
+    client_id: Optional[str] = None
     
 class MatchedProject(BaseModel):
     project: Project
@@ -45,3 +46,4 @@ class GenerateFullApplicationRequest(BaseModel):
     personal_info_id: Optional[int] = None
     top_k: int = 4
     selected_projects: Optional[List[MatchedProject]] = None
+    client_id: Optional[str] = None
