@@ -119,7 +119,7 @@ class GeminiService:
             - Technologies: {', '.join(project.technologies)}
             """
         
-        prompt = f"""You are a professional cover letter writer. Use the provided template to create a personalized cover letter for the given job description.
+        prompt = f"""You are an expert professional cover letter writer. Create a compelling, personalized cover letter that follows modern best practices and stands out to hiring managers.
 
     TEMPLATE TO FOLLOW (adapt the structure, tone and style):
     {template_text}
@@ -152,7 +152,7 @@ class GeminiService:
 
         response = self.precise_model.generate_content([prompt])
         json_response = self._extract_json(response.text)
-        response_text = json_response.get("cover_letter", "")
+        response_text = json_response.get("cover_letter", "").replace("\\\\n", "\n")
         comp = json_response.get("company_name", "")
         return response_text, comp
 
