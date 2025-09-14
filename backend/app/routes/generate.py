@@ -1,5 +1,6 @@
-from fastapi import APIRouter, HTTPException, File, UploadFile
+from fastapi import APIRouter, HTTPException, File, UploadFile, Depends
 from fastapi.responses import FileResponse
+from sqlalchemy.orm import Session
 from typing import Dict, Any
 import os
 from pydantic import BaseModel
@@ -7,6 +8,8 @@ from app.models.project import CVGenerationRequest, CoverLetterRequest, Generate
 from app.services.cv_generator import CVGenerator
 from app.services.letter_generator import CoverLetterGenerator
 from app.services.embeddings import EmbeddingService
+from app.database.database import get_db
+from app.database import crud, schemas
 
 router = APIRouter()
 
@@ -51,11 +54,38 @@ def generate_cover_letter(request: CoverLetterRequest):
         raise HTTPException(status_code=500, detail=f"Error generating cover letter: {str(e)}")
 
 @router.post("/generate-full-application")
-def generate_full_application(request: GenerateFullApplicationRequest):
+def generate_full_application(request: GenerateFullApplicationRequest, db: Session = Depends(get_db)):
     """
     Generate both CV and cover letter for a complete job application
     """
     try:
+        # Get personal info from database or use provided fallback
+        personal_info_data = None
+        if request.personal_info_id:
+            personal_info_db = crud.PersonalInfoCRUD.get(db, request.personal_info_id)
+            if not personal_info_db:
+                raise HTTPException(status_code=404, detail="Personal info not found in database")
+            # Convert database model to dict format expected by generators
+            personal_info_data = {
+                "first_name": personal_info_db.first_name,
+                "last_name": personal_info_db.last_name,
+                "email": personal_info_db.email,
+                "phone": personal_info_db.phone,
+                "address": personal_info_db.address,
+                "city": personal_info_db.city,
+                "postal_code": personal_info_db.postal_code,
+                "title": personal_info_db.title,
+                "summary": personal_info_db.summary,
+                "skills": personal_info_db.skills or {},
+                "experience": personal_info_db.experience or [],
+                "education": personal_info_db.education or []
+            }
+        elif request.personal_info:
+            # Fallback to provided personal_info for backward compatibility
+            personal_info_data = request.personal_info
+        else:
+            raise HTTPException(status_code=400, detail="Either personal_info_id or personal_info must be provided")
+
         # Step 1: Get matching projects (use selected projects if provided, otherwise find them)
         if request.selected_projects:
             matched_projects = request.selected_projects
@@ -78,30 +108,76 @@ def generate_full_application(request: GenerateFullApplicationRequest):
         jd = request.job_description
         if isinstance(jd, dict):
             job_description = ", ".join(str(v) for v in jd.values() if v)
+            job_title = jd.get("title", "Unknown Position")
+            company_name = jd.get("company", "Unknown Company")
+            job_desc_text = jd.get("description", "")
+            job_requirements = jd.get("requirements", "")
         else:
             job_description = str(jd)
+            job_title = "Unknown Position"
+            company_name = "Unknown Company"
+            job_desc_text = job_description
+            job_requirements = ""
         
-        # Step 2: Generate CV
+        # Step 2: Create job application record if personal_info_id is provided
+        job_app_id = None
+        if request.personal_info_id:
+            job_app_create = schemas.JobApplicationCreate(
+                personal_info_id=request.personal_info_id,
+                job_title=job_title,
+                company_name=company_name,
+                job_description=job_desc_text,
+                job_requirements=job_requirements
+            )
+            job_app = crud.JobApplicationCRUD.create(db, job_app_create)
+            job_app_id = job_app.id
+        
+        # Step 3: Generate CV
         cv_request = CVGenerationRequest(
             matched_projects=matched_projects,
-            personal_info=request.personal_info
+            personal_info=personal_info_data
         )
         
         cv_generator = CVGenerator()
         cv_path = cv_generator.generate_cv(cv_request)
         
-        # Step 3: Generate Cover Letter
+        # Step 4: Generate Cover Letter
         print("Generating cover letter...")
         letter_request = CoverLetterRequest(
             job_description=job_description,
             matched_projects=matched_projects,
-            personal_info=request.personal_info
+            personal_info=personal_info_data
         )
         
         letter_generator = CoverLetterGenerator()
         letter_path = letter_generator.generate_cover_letter(letter_request)
+        
+        # Step 5: Update job application with file paths if we created one
+        if job_app_id:
+            cv_download_url = f"/api/v1/download/{os.path.basename(cv_path)}"
+            letter_download_url = f"/api/v1/download/{os.path.basename(letter_path)}"
+            
+            # Serialize matched projects for storage
+            matched_projects_data = [
+                {
+                    "name": mp.project.name,
+                    "similarity_score": mp.similarity_score,
+                    "url": mp.project.url,
+                    "description": mp.project.description,
+                    "three_liner": mp.project.three_liner,
+                    "technologies": mp.project.technologies
+                } for mp in matched_projects
+            ]
+            
+            crud.JobApplicationCRUD.update_file_paths(
+                db, job_app_id, cv_path, letter_path, 
+                cv_download_url, letter_download_url,
+                matched_projects_data
+            )
+        
         return {
             "message": "Full application generated successfully",
+            "job_application_id": job_app_id,
             "cv": {
                 "path": cv_path,
                 "download_url": f"/api/v1/download/{os.path.basename(cv_path)}"

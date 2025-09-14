@@ -43,6 +43,7 @@ class CoverLetterRequest(BaseModel):
     
 class GenerateFullApplicationRequest(BaseModel):
     job_description: dict | str
-    personal_info: Dict[str, Any]
+    personal_info_id: Optional[int] = None  # Use DB personal info instead of direct input
+    personal_info: Optional[Dict[str, Any]] = None  # Fallback for backward compatibility
     top_k: int = 4
     selected_projects: Optional[List[MatchedProject]] = None
