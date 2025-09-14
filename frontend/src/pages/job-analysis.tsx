@@ -1,20 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Textarea } from "@/components/ui/textarea";
-import { Badge } from "@/components/ui/badge";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Loader2, Send, FileText, Mail } from "lucide-react";
 import { config } from "@/config";
 import { toast } from "sonner";
+import { AnalysisResults } from "@/components/job-analysis/AnalysisResults";
+import { JobAnalysisHeader } from "@/components/job-analysis/JobAnalysisHeader";
+import { ProjectSelection } from "@/components/job-analysis/ProjectSelection";
+import type { MatchedProject } from "@/types/project";
+import { JobDescriptionInput } from "@/components/job-analysis/JobDescriptionInput";
 
 interface JobAnalysisResult {
   job_analysis_result: JobDescriptionResult;
@@ -27,25 +20,14 @@ interface JobAnalysisResult {
 }
 
 interface JobDescriptionResult {
-    title: string,
-    company: string,
-    required_technologies: string[],
-    experience_level: string,
-    soft_skills: string[],
-    analysis_summary: string,
-    full_description: string,
-    requirements: string
-}
-
-interface MatchedProject {
-  project: {
-    name: string;
-    description: string;
-    three_liner: string;
-    url: string;
-    technologies: string[];
-  };
-  similarity_score: number;
+  title: string;
+  company: string;
+  required_technologies: string[];
+  experience_level: string;
+  soft_skills: string[];
+  analysis_summary: string;
+  full_description: string;
+  requirements: string;
 }
 
 interface GenerateApplicationRequest {
@@ -63,7 +45,9 @@ export function JobAnalysis() {
   const [analysisResult, setAnalysisResult] =
     useState<JobAnalysisResult | null>(null);
   const [matchedProjects, setMatchedProjects] = useState<MatchedProject[]>([]);
-  const [selectedProjects, setSelectedProjects] = useState<MatchedProject[]>([]);
+  const [selectedProjects, setSelectedProjects] = useState<MatchedProject[]>(
+    []
+  );
 
   const analyzeJob = async () => {
     if (!jobDescription.trim()) {
@@ -95,8 +79,8 @@ export function JobAnalysis() {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            job_description: analysis
-           }),
+            job_description: analysis,
+          }),
         }
       );
 
@@ -127,7 +111,10 @@ export function JobAnalysis() {
     }
   };
 
-  const handleProjectSelection = (project: MatchedProject, checked: boolean) => {
+  const handleProjectSelection = (
+    project: MatchedProject,
+    checked: boolean
+  ) => {
     if (checked) {
       if (selectedProjects.length < 4) {
         setSelectedProjects([...selectedProjects, project]);
@@ -135,13 +122,17 @@ export function JobAnalysis() {
         toast.error("You can select at most 4 projects");
       }
     } else {
-      setSelectedProjects(selectedProjects.filter(p => p.project.name !== project.project.name));
+      setSelectedProjects(
+        selectedProjects.filter((p) => p.project.name !== project.project.name)
+      );
     }
   };
 
   const generateApplication = async () => {
     if (!userId) {
-      toast.error("User ID not found. Please fill in your personal information.");
+      toast.error(
+        "User ID not found. Please fill in your personal information."
+      );
       return;
     }
 
@@ -206,217 +197,28 @@ export function JobAnalysis() {
 
   return (
     <div className="flex flex-col h-full">
-      {/* Header */}
-      <div className="border-b border-border p-6">
-        <h1 className="font-heading text-2xl font-bold text-foreground">
-          Job Analysis
-        </h1>
-        <p className="text-muted-foreground mt-1">
-          Paste a job description to analyze requirements and generate tailored
-          applications
-        </p>
-      </div>
+      <JobAnalysisHeader
+        analysisResult={analysisResult}
+        isGenerating={isGenerating}
+        onGenerate={generateApplication}
+        selectedProjectsCount={selectedProjects.length}
+      />
 
-      {/* Content */}
       <div className="flex-1 p-6 space-y-6 overflow-auto">
-        {/* Input Section */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Job Description</CardTitle>
-            <CardDescription>
-              Paste the job description you want to apply for
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <Textarea
-              placeholder="Paste the job description here..."
-              value={jobDescription}
-              onChange={(e) => setJobDescription(e.target.value)}
-              className="min-h-[200px]"
-            />
-            <div className="flex gap-2">
-              <Button
-                onClick={analyzeJob}
-                disabled={isAnalyzing || !jobDescription.trim()}
-                className="cursor-pointer flex-1"
-              >
-                {isAnalyzing ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Analyzing...
-                  </>
-                ) : (
-                  <>
-                    <Send className="mr-2 h-4 w-4" />
-                    Analyze Job
-                  </>
-                )}
-              </Button>
-              {analysisResult && (
-                <Button
-                  className="cursor-pointer flex-1"
-                  onClick={generateApplication}
-                  disabled={isGenerating || selectedProjects.length === 0}
-                  variant="secondary"
-                >
-                  {isGenerating ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Generating...
-                    </>
-                  ) : (
-                    <>
-                      <FileText className="mr-2 h-4 w-4" />
-                      Generate Application
-                    </>
-                  )}
-                </Button>
-              )}
-            </div>
-          </CardContent>
-        </Card>
+        <JobDescriptionInput
+          jobDescription={jobDescription}
+          setJobDescription={setJobDescription}
+          isAnalyzing={isAnalyzing}
+          onAnalyze={analyzeJob}
+        />
 
-        {/* Analysis Results */}
-        {analysisResult && (
-          <div className="space-y-4">
-            {/* Job Analysis */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Analysis Results</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div>
-                  <h4 className="font-medium mb-2">Required Technologies</h4>
-                  <div className="flex flex-wrap gap-2">
-                    {analysisResult.job_analysis_result.required_technologies.map((tech, index) => (
-                      <Badge key={index} variant="secondary">
-                        {tech}
-                      </Badge>
-                    ))}
-                  </div>
-                </div>
+        <AnalysisResults analysisResult={analysisResult?.job_analysis_result!} />
 
-                <div>
-                  <h4 className="font-medium mb-2">Experience Level</h4>
-                  <Badge variant="outline">
-                    {analysisResult.job_analysis_result.experience_level}
-                  </Badge>
-                </div>
-
-                <div>
-                  <h4 className="font-medium mb-2">Summary</h4>
-                  <p className="text-sm text-muted-foreground">
-                    {analysisResult.job_analysis_result.analysis_summary}
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Matched Projects */}
-            {matchedProjects.length > 0 && (
-              <Card>
-                <CardHeader>
-                  <CardTitle>Matched Projects</CardTitle>
-                  <CardDescription>
-                    Select up to 4 projects that best match this job ({selectedProjects.length}/4 selected)
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-3">
-                    {matchedProjects.map((matchedProject, index) => {
-                      const isSelected = selectedProjects.some(
-                        p => p.project.name === matchedProject.project.name
-                      );
-                      
-                      return (
-                        <div
-                          key={index}
-                          className="flex items-center space-x-3 p-3 border border-border rounded-lg"
-                        >
-                          <Checkbox
-                            checked={isSelected}
-                            onCheckedChange={(checked: boolean) => 
-                              handleProjectSelection(matchedProject, checked)
-                            }
-                            disabled={!isSelected && selectedProjects.length >= 4}
-                          />
-                          <div className="flex-1">
-                            <div className="flex items-center justify-between">
-                              <span className="font-medium">{matchedProject.project.name}</span>
-                              <Badge variant="secondary">
-                                {(matchedProject.similarity_score * 100).toFixed(1)}% match
-                              </Badge>
-                            </div>
-                            {matchedProject.project.three_liner && (
-                              <p className="text-sm text-muted-foreground mt-1">
-                                {matchedProject.project.three_liner}
-                              </p>
-                            )}
-                            {matchedProject.project.technologies && matchedProject.project.technologies.length > 0 && (
-                              <div className="flex flex-wrap gap-1 mt-2">
-                                {matchedProject.project.technologies.slice(0, 5).map((tech, techIndex) => (
-                                  <Badge key={techIndex} variant="outline" className="text-xs">
-                                    {tech}
-                                  </Badge>
-                                ))}
-                                {matchedProject.project.technologies.length > 5 && (
-                                  <Badge variant="outline" className="text-xs">
-                                    +{matchedProject.project.technologies.length - 5} more
-                                  </Badge>
-                                )}
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-
-            {/* Download Section */}
-            {(analysisResult.cv_download_url ||
-              analysisResult.cover_letter_download_url) && (
-              <Card>
-                <CardHeader>
-                  <CardTitle>Generated Documents</CardTitle>
-                  <CardDescription>
-                    Download your tailored CV and cover letter
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="flex gap-4">
-                    {analysisResult.cv_download_url && (
-                      <Button asChild>
-                        <a
-                          href={`${config.api.baseUrl}${analysisResult.cv_download_url}`}
-                          target="_blank"
-                          rel="noreferrer"
-                        >
-                          <FileText className="mr-2 h-4 w-4" />
-                          Download CV
-                        </a>
-                      </Button>
-                    )}
-                    {analysisResult.cover_letter_download_url && (
-                      <Button asChild variant="secondary">
-                        <a
-                          href={`${config.api.baseUrl}${analysisResult.cover_letter_download_url}`}
-                          target="_blank"
-                          rel="noreferrer"
-                        >
-                          <Mail className="mr-2 h-4 w-4" />
-                          Download Cover Letter
-                        </a>
-                      </Button>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-          </div>
-        )}
+        <ProjectSelection
+          matchedProjects={matchedProjects}
+          selectedProjects={selectedProjects}
+          onProjectSelection={handleProjectSelection}
+        />
       </div>
     </div>
   );
