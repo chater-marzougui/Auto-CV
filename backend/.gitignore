@@ -53,6 +53,7 @@ Thumbs.db
 # Migrations
 migrations/
 */migrations/
+temp/
 
 # Data files
 data/

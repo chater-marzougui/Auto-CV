@@ -1,9 +1,7 @@
 from fastapi import APIRouter, HTTPException, File, UploadFile, Depends
 from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
-from typing import Dict, Any
 import os
-from pydantic import BaseModel
 from app.models.project import CVGenerationRequest, CoverLetterRequest, GenerateFullApplicationRequest
 from app.services.cv_generator import CVGenerator
 from app.services.letter_generator import CoverLetterGenerator

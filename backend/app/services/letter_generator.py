@@ -3,18 +3,18 @@ import tempfile
 import subprocess
 import shutil
 import PyPDF2
-from typing import List, Dict, Any
 from app.models.project import CoverLetterRequest
 from app.services.gemini_service import GeminiService
 
 class CoverLetterGenerator:
     def __init__(self):
-        self.temp_dir = tempfile.mkdtemp()
+        self.temp_dir = "temp"
         self.output_dir = "output"
         self.templates_dir = "templates"
         
         # Create directories if they don't exist
         os.makedirs(self.output_dir, exist_ok=True)
+        os.makedirs(self.temp_dir, exist_ok=True)
         os.makedirs(self.templates_dir, exist_ok=True)
         
         # Initialize Gemini service
@@ -53,8 +53,12 @@ class CoverLetterGenerator:
                 projects=request.matched_projects,
             )
             
+            print("Generated Cover Letter for:\n", company)
+            
             # Create LaTeX content with the generated text
-            latex_content = self._create_latex_document(cover_letter_content, request.personal_info)
+            
+            latex_content = self._create_latex_document(cover_letter_content, personal_info={})
+            print("Generated LaTeX content for cover letter.")
             
             # Generate PDF
             pdf_path = self._compile_latex(latex_content, f"cover_letter_{company}")
@@ -81,8 +85,8 @@ class CoverLetterGenerator:
         
         except Exception as e:
             raise RuntimeError(f"Error extracting text from PDF: {str(e)}")
-    
-    def _create_latex_document(self, content: str) -> str:
+
+    def _create_latex_document(self, content: str, personal_info: dict) -> str:
         """
         Create LaTeX document with generated content using professional template
         """
@@ -91,6 +95,8 @@ class CoverLetterGenerator:
         email = 'chater.marzougui@supcom.tn'
         phone = '+216 28 356 927'
         title = 'Software Engineering Student'
+        
+        formatted_content = self.fix_latex_special_chars(content)
 
         latex_template = r"""
 \documentclass[11pt,a4paper]{article}
@@ -147,7 +153,7 @@ class CoverLetterGenerator:
 
 \letterheader
 
-""" + content + r"""
+""" + formatted_content + r"""
 
 \vspace{2cm}
 
@@ -176,31 +182,77 @@ class CoverLetterGenerator:
             tex_file = os.path.join(self.temp_dir, f"{filename_prefix}.tex")
             with open(tex_file, 'w', encoding='utf-8') as f:
                 f.write(latex_content)
-            
-            # Compile with pdflatex (run twice for references)
-            for _ in range(2):
+
+            # Compile with pdflatex (run three times for references)
+            for i in range(3):
                 result = subprocess.run(
-                    ['pdflatex', '-interaction=nonstopmode', '-output-directory', self.temp_dir, tex_file],
+                    ['pdflatex', '-interaction=nonstopmode',
+                    '-output-directory', self.temp_dir, tex_file],
                     capture_output=True,
-                    text=True,
-                    cwd=self.temp_dir
+                    text=True
                 )
                 
-                if result.returncode != 0:
-                    raise RuntimeError(f"LaTeX compilation failed: {result.stderr}")
-            
+                if result.returncode != 0 and i == 2:
+                    raise RuntimeError(f"LaTeX compilation failed after 3 attempts:\n{result}")
+                elif result.returncode != 0:
+                    print(result.stderr)
+                    print(result.stdout)
+                    print(f"LaTeX compilation error on attempt {i+1}:\n{result.stderr}")
+                else:
+                    break
+                
             # Move PDF to output directory
             temp_pdf = os.path.join(self.temp_dir, f"{filename_prefix}.pdf")
             if not os.path.exists(temp_pdf):
                 raise RuntimeError("PDF was not generated")
             
-            output_pdf = os.path.join(self.output_dir, f"{filename_prefix}_{hash(latex_content)}.pdf")
+            output_pdf = os.path.join(self.output_dir, f"{filename_prefix}.pdf")
             shutil.copy2(temp_pdf, output_pdf)
             
             return output_pdf
                 
         except Exception as e:
             raise RuntimeError(f"LaTeX compilation error: {str(e)}")
+        
+    def fix_latex_special_chars(self, text: str) -> str:
+        """
+        Fix special characters in LaTeX by escaping them if not already escaped.
+        
+        Args:
+            text (str): The input text that may contain unescaped LaTeX special characters
+            
+        Returns:
+            str: Text with properly escaped LaTeX special characters
+        """
+        import re
+        
+        # Define the special characters and their LaTeX escaped versions
+        special_chars = {
+            '&': r'\&',
+            '%': r'\%', 
+            '$': r'\$',
+            '#': r'\#',
+            '^': r'\^{}',
+            '_': r'\_',
+            '~': r'\~{}',
+            '\\': r'\textbackslash{}',  # Handle backslash specially
+        }
+        
+        result = text
+        
+        for char, escaped in special_chars.items():
+            if char == '\\':
+                # Special handling for backslash - only escape standalone backslashes
+                # that aren't part of existing LaTeX commands
+                pattern = r'(?<!\\)\\(?![a-zA-Z{}&%$#^_~])'
+                result = re.sub(pattern, escaped, result)
+            else:
+                # Create pattern to match unescaped characters
+                # Look for the character not preceded by backslash
+                pattern = f'(?<!\\\\){re.escape(char)}'
+                result = re.sub(pattern, escaped, result)
+        
+        return result
     
     def __del__(self):
         """
@@ -208,5 +260,5 @@ class CoverLetterGenerator:
         """
         try:
             shutil.rmtree(self.temp_dir, ignore_errors=True)
-        except:
+        except Exception:
             pass

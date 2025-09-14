@@ -1,7 +1,7 @@
 import os
 import pickle
 import re
-from typing import List, Dict, Tuple
+from typing import List, Dict
 from sentence_transformers import SentenceTransformer
 import faiss
 from datetime import datetime, timezone

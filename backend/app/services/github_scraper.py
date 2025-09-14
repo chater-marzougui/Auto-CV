@@ -10,8 +10,7 @@ from app.services.embeddings import EmbeddingService
 from app.services.gemini_service import GeminiService
 from github import Repository
 from concurrent.futures import ThreadPoolExecutor
-import functools
-from app.utils.colored_logger import get_scraper_logger, log_progress, log_success, log_warning, log_error, log_debug
+from app.utils.colored_logger import get_scraper_logger, log_progress, log_success, log_warning, log_error
 
 class GitHubScraper:
     def __init__(self, github_token: Optional[str] = None, websocket_manager=None, client_id: str = None):

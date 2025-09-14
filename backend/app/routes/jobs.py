@@ -5,8 +5,6 @@ from app.models.project import JobDescription, MatchedProject
 from app.services.embeddings import EmbeddingService
 from app.services.github_scraper import GitHubScraper
 from app.services.gemini_service import GeminiService
-import json
-import os
 
 router = APIRouter()
 class JobDescriptionInput(BaseModel):

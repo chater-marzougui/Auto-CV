@@ -1,6 +1,5 @@
 import google.generativeai as genai
 import os
-import re
 import json
 
 class GeminiService:
@@ -142,7 +141,12 @@ class GeminiService:
     8. Keep it concise and impactful (2-3 paragraphs)
     9. Don't include placeholder text like [Your Name] or [Company Name] - use actual values
     10. Return only the body paragraphs of the cover letter, without salutation or closing
-    11. The text will be used in a LaTeX template so avoid any special characters that could break the formatting
+    
+    IMPORTANT:
+    1. The text will be used in a LaTeX template so avoid any special characters that could break the formatting
+    2. You can use latex commands for formatting like \\textbf{{}} for bold and try to make empty lines between paragraphs.
+    2. don't include package imports or document structure just the letter content
+    
     return a json with two keys and no other text just the json:
     {{
         "company_name": "the company name extracted from the job description no spaces or special characters",
