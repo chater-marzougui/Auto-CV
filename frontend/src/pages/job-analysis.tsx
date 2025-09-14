@@ -8,6 +8,7 @@ import { JobAnalysisHeader } from "@/components/job-analysis/JobAnalysisHeader";
 import { ProjectSelection } from "@/components/job-analysis/ProjectSelection";
 import type { MatchedProject } from "@/types/project";
 import { JobDescriptionInput } from "@/components/job-analysis/JobDescriptionInput";
+import { ProgressCard } from "@/components/progress-card";
 
 interface JobAnalysisResult {
   job_analysis_result: JobDescriptionResult;
@@ -35,6 +36,7 @@ interface GenerateApplicationRequest {
   personal_info_id: string | number | null;
   selected_projects?: MatchedProject[];
   top_k?: number;
+  client_id?: string;
 }
 
 export function JobAnalysis() {
@@ -48,6 +50,8 @@ export function JobAnalysis() {
   const [selectedProjects, setSelectedProjects] = useState<MatchedProject[]>(
     []
   );
+  const [showProgress, setShowProgress] = useState(false);
+  const [currentClientId, setCurrentClientId] = useState<string | null>(null);
 
   const analyzeJob = async () => {
     if (!jobDescription.trim()) {
@@ -56,7 +60,13 @@ export function JobAnalysis() {
     }
 
     setIsAnalyzing(true);
+    setShowProgress(true);
+    
     try {
+      // Generate a client ID for websocket connection
+      const clientId = `job-analysis-${Date.now()}`;
+      setCurrentClientId(clientId);
+
       const response = await fetch(
         `${config.api.baseUrl}${config.api.endpoints.analyzeJob}`,
         {
@@ -64,6 +74,7 @@ export function JobAnalysis() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             description: jobDescription,
+            client_id: clientId,
           }),
         }
       );
@@ -80,6 +91,7 @@ export function JobAnalysis() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             job_description: analysis,
+            client_id: clientId,
           }),
         }
       );
@@ -147,10 +159,17 @@ export function JobAnalysis() {
     }
 
     setIsGenerating(true);
+    setShowProgress(true);
+    
     try {
+      // Generate a client ID for websocket connection
+      const clientId = `app-generation-${Date.now()}`;
+      setCurrentClientId(clientId);
+
       const requestBody: GenerateApplicationRequest = {
         personal_info_id: userId,
         job_description: analysisResult.job_analysis_result,
+        client_id: clientId,
       };
 
       // If projects are selected, pass them instead of using top_k
@@ -195,6 +214,15 @@ export function JobAnalysis() {
     }
   };
 
+  const handleProgressClose = () => {
+    setShowProgress(false);
+  };
+
+  const onCompleteProcess = async () => {
+    // Refresh data if needed after completion
+    console.log("Process completed");
+  };
+
   return (
     <div className="flex flex-col h-full">
       <JobAnalysisHeader
@@ -202,6 +230,9 @@ export function JobAnalysis() {
         isGenerating={isGenerating}
         onGenerate={generateApplication}
         selectedProjectsCount={selectedProjects.length}
+        showProgress={showProgress}
+        onToggleProgress={() => setShowProgress(!showProgress)}
+        hasActiveClient={!!currentClientId}
       />
 
       <div className="flex-1 p-6 space-y-6 overflow-auto">
@@ -212,7 +243,7 @@ export function JobAnalysis() {
           onAnalyze={analyzeJob}
         />
 
-        <AnalysisResults analysisResult={analysisResult?.job_analysis_result!} />
+        <AnalysisResults analysisResult={analysisResult?.job_analysis_result || null} />
 
         <ProjectSelection
           matchedProjects={matchedProjects}
@@ -220,6 +251,16 @@ export function JobAnalysis() {
           onProjectSelection={handleProjectSelection}
         />
       </div>
+
+      {/* Progress Card - Fixed positioned overlay */}
+      {currentClientId && (
+        <ProgressCard
+          isVisible={showProgress}
+          onClose={handleProgressClose}
+          websocketUrl={`ws://localhost:5000/ws/${currentClientId}`}
+          onComplete={onCompleteProcess}
+        />
+      )}
     </div>
   );
 }

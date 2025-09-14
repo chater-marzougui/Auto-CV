@@ -1,6 +1,6 @@
 
 import { Button } from "@/components/ui/button";
-import { Loader2, FileText, Mail, Download } from "lucide-react";
+import { Loader2, FileText, Mail, Download, Activity } from "lucide-react";
 
 interface Links {
     cv_download_url?: string;
@@ -12,6 +12,9 @@ interface JobAnalysisHeaderProps {
   isGenerating: boolean;
   onGenerate: () => void;
   selectedProjectsCount: number;
+  showProgress: boolean;
+  onToggleProgress: () => void;
+  hasActiveClient: boolean;
 }
 
 // Header Component
@@ -20,6 +23,9 @@ export function JobAnalysisHeader({
   isGenerating,
   onGenerate,
   selectedProjectsCount,
+  showProgress,
+  onToggleProgress,
+  hasActiveClient,
 }: Readonly<JobAnalysisHeaderProps>) {
   const hasDownloads =
     analysisResult?.cv_download_url ||
@@ -39,6 +45,18 @@ export function JobAnalysisHeader({
         </div>
 
         <div className="flex items-center gap-3">
+          {/* Progress Toggle */}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={onToggleProgress}
+            className="flex items-center gap-2 cursor-pointer"
+            disabled={!hasActiveClient}
+          >
+            <Activity className="h-4 w-4" />
+            {showProgress ? "Hide Progress" : "Show Progress"}
+          </Button>
+
           {analysisResult && (
             <Button
               onClick={onGenerate}

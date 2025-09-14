@@ -75,6 +75,11 @@ app.add_middleware(
 # WebSocket manager instance
 websocket_manager = WebSocketManager()
 
+# Set websocket manager in routes
+from app.routes import jobs, generate
+jobs.websocket_manager = websocket_manager
+generate.websocket_manager = websocket_manager
+
 # Include routers
 app.include_router(jobs.router, prefix="/api/v1")
 app.include_router(generate.router, prefix="/api/v1")
