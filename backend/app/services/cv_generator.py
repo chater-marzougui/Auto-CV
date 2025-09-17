@@ -158,6 +158,7 @@ Check the test.tex file in {self.templates_dir} for syntax issues."""
                 
                 # Copy output PDF to output directory
                 shutil.copy2(pdf_file, output_pdf)
+                shutil.copy2(tex_file, "output/debug_cv.tex")
                 print(f"PDF successfully created: {output_pdf}")
                 
                 return output_pdf

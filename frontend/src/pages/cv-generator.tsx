@@ -45,10 +45,10 @@ export function CVGenerator() {
 
   const handleProjectSelection = (project: Project, checked: boolean) => {
     if (checked) {
-      if (selectedProjects.length < 6) {
+      if (selectedProjects.length < 8) {
         setSelectedProjects([...selectedProjects, project]);
       } else {
-        toast.error("You can select at most 6 projects for your CV");
+        toast.error("You can select at most 8 projects for your CV");
       }
     } else {
       setSelectedProjects(
@@ -165,8 +165,8 @@ export function CVGenerator() {
               Select Projects
             </CardTitle>
             <CardDescription>
-              Choose up to 6 projects to showcase in your CV (
-              {selectedProjects.length}/6 selected)
+              Choose up to 8 projects to showcase in your CV (
+              {selectedProjects.length}/8 selected)
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -195,7 +195,7 @@ export function CVGenerator() {
                         onCheckedChange={(checked: boolean) =>
                           handleProjectSelection(project, checked)
                         }
-                        disabled={!isSelected && selectedProjects.length >= 6}
+                        disabled={!isSelected && selectedProjects.length >= 8}
                         className="mt-1"
                       />
                       <div className="flex-1">
@@ -213,9 +213,9 @@ export function CVGenerator() {
                           </div>
                         </div>
 
-                        {project.description && (
+                        {project.three_liner && (
                           <p className="text-sm text-muted-foreground mb-2">
-                            {project.description}
+                            {project.three_liner}
                           </p>
                         )}
 
@@ -223,7 +223,7 @@ export function CVGenerator() {
                           project.technologies.length > 0 && (
                             <div className="flex flex-wrap gap-1">
                               {project.technologies
-                                .slice(0, 6)
+                                .slice(0, 8)
                                 .map((tech, techIndex) => (
                                   <Badge
                                     key={techIndex}
@@ -233,9 +233,9 @@ export function CVGenerator() {
                                     {tech}
                                   </Badge>
                                 ))}
-                              {project.technologies.length > 6 && (
+                              {project.technologies.length > 8 && (
                                 <Badge variant="outline" className="text-xs">
-                                  +{project.technologies.length - 6} more
+                                  +{project.technologies.length - 8} more
                                 </Badge>
                               )}
                             </div>
