@@ -71,7 +71,9 @@ class CVGenerator:
             latex_content = re.sub(pattern, replace_projects, latex_content, flags=re.DOTALL)
             
             # Generate PDF
-            pdf_path = self._compile_latex(latex_content, "cv")
+            file_name = request.output_filename or "generated_cv"
+            file_name = re.sub(r'\s+', '_', file_name.strip())
+            pdf_path = self._compile_latex(latex_content, file_name)
             return pdf_path
             
         except Exception as e:

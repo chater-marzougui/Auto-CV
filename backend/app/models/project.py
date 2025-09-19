@@ -34,6 +34,7 @@ class CVGenerationRequest(BaseModel):
     matched_projects: List[MatchedProject]
     personal_info: Optional[PersonalInfoBase] = None
     template_path: Optional[str] = None
+    output_filename: Optional[str] = "Resume"
     
 class CoverLetterRequest(BaseModel):
     job_description: str

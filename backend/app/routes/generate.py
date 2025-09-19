@@ -200,7 +200,8 @@ async def generate_full_application(request: GenerateFullApplicationRequest, db:
             
         cv_request = CVGenerationRequest(
             matched_projects=matched_projects,
-            personal_info=personal_info_data
+            personal_info=personal_info_data,
+            output_filename=f"{personal_info_data.full_name.replace(' ', '_')}_CV_{company_name.replace(' ', '_')}",
         )
         
         cv_generator = CVGenerator()

@@ -86,7 +86,6 @@ export function JobAnalysisHeader({
                   <a
                     href={`${baseUrl}${analysisResult.cv_download_url}`}
                     target="_blank"
-                    download="CV.pdf"
                     rel="noreferrer"
                   >
                     <Download className="mr-2 h-4 w-4" />
@@ -99,7 +98,6 @@ export function JobAnalysisHeader({
                   <a
                     href={`${baseUrl}${analysisResult.cover_letter_download_url}`}
                     target="_blank"
-                    download="Cover_Letter.pdf"
                     rel="noreferrer"
                   >
                     <Mail className="mr-2 h-4 w-4" />
