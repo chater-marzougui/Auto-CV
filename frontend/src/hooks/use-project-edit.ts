@@ -1,24 +1,7 @@
 import { useState } from 'react';
 import { config } from '@/config';
 import { toast } from 'sonner';
-
-interface Project {
-  name: string;
-  url: string;
-  description: string;
-  three_liner: string;
-  detailed_paragraph: string;
-  technologies: string[];
-  bad_readme: boolean;
-  no_readme: boolean;
-  stars: number;
-  forks: number;
-  language: string;
-  created_at: string;
-  updated_at: string;
-  hidden_from_search?: boolean;
-}
-
+import type { Project } from '@/types/project';
 interface EditState {
   three_liner: string;
   technologies: string[];

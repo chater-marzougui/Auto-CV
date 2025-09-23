@@ -31,23 +31,8 @@ import {
   Check,
   X,
 } from "lucide-react";
-
-interface Project {
-  name: string;
-  url: string;
-  description: string;
-  three_liner: string;
-  detailed_paragraph: string;
-  technologies: string[];
-  bad_readme: boolean;
-  no_readme: boolean;
-  stars: number;
-  forks: number;
-  language: string;
-  created_at: string;
-  updated_at: string;
-  hidden_from_search?: boolean;
-}
+import { useIsMobile } from "@/hooks/use-mobile";
+import type { Project } from "@/types/project";
 
 type RepoCardProps = {
   index: number;
@@ -117,6 +102,7 @@ export const RepoCard: React.FC<RepoCardProps> = ({
   onSaveEdit,
   onUpdateEditState,
 }) => {
+  const isMobile = useIsMobile();
   const handleSaveEdit = async () => {
     await onSaveEdit(project.name);
     // The parent component will handle reloading projects if successful
@@ -125,7 +111,9 @@ export const RepoCard: React.FC<RepoCardProps> = ({
   return (
     <Card
       key={index}
-      className="hover:shadow-md transition-shadow flex flex-col justify-between w-[30%] min-w-3xs min-h-100"
+      className={`hover:shadow-md transition-shadow flex flex-col justify-between w-[${
+        isMobile ? 90 : 30
+      }%] min-w-3xs min-h-100`}
     >
       <CardHeader className="pb-3 w-full">
         <div className="flex items-start justify-between w-full">
@@ -153,7 +141,7 @@ export const RepoCard: React.FC<RepoCardProps> = ({
               <Badge variant="outline">{project.language || "Unknown"}</Badge>
             )}
             {/* Dropdown Menu for actions */}
-            <DropdownMenu >
+            <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button
                   variant="ghost"
