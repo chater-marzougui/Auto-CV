@@ -9,6 +9,7 @@ import {
   CardContent,
 } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
 import { TagInput } from "@/components/ui/tag-input";
 import {
   DropdownMenu,
@@ -46,16 +47,22 @@ type RepoCardProps = {
   editState: {
     three_liner: string;
     technologies: string[];
+    suggested_name: string;
   };
   isEditUpdating: boolean;
   onStartEdit: (project: Project) => void;
   onCancelEdit: () => void;
   onSaveEdit: (projectName: string) => Promise<boolean>;
   onUpdateEditState: (
-    field: "three_liner" | "technologies",
+    field: "three_liner" | "technologies" | "suggested_name",
     value: string | string[]
   ) => void;
 };
+
+const getDisplayName = (project: Project) => {
+  return project.suggested_name || project.name;
+};
+
 const formatTitle = (title: string) => {
   // Words to keep unchanged if length < 3 or are all uppercase (like AI, ML)
   return title
@@ -120,7 +127,7 @@ export const RepoCard: React.FC<RepoCardProps> = ({
           {/* left side - Fixed truncation issue here */}
           <div className="flex flex-col min-w-0 flex-1 overflow-hidden">
             <CardTitle className="text-lg font-medium line-clamp-1">
-              {formatTitle(project.name)}
+              {formatTitle(getDisplayName(project))}
             </CardTitle>
             {project.hidden_from_search && (
               <Badge variant="outline" className="text-xs mt-1 w-fit">
@@ -202,6 +209,19 @@ export const RepoCard: React.FC<RepoCardProps> = ({
         <CardDescription className="line-clamp-7 mt-2">
           {isEditing ? (
             <div className="space-y-3">
+              <div>
+                <label className="text-sm font-medium text-muted-foreground block mb-1">
+                  Project Title:
+                </label>
+                <Input
+                  value={editState.suggested_name}
+                  onChange={(e) =>
+                    onUpdateEditState("suggested_name", e.target.value)
+                  }
+                  placeholder="Enter project title (leave empty to use repository name)"
+                  disabled={isEditUpdating}
+                />
+              </div>
               <div>
                 <label className="text-sm font-medium text-muted-foreground block mb-1">
                   Description (three-liner):

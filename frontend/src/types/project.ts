@@ -1,6 +1,7 @@
 
 export interface Project {
   name: string;
+  suggested_name?: string;
   url: string;
   description: string;
   three_liner: string;

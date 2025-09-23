@@ -9,6 +9,10 @@ import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import type { MatchedProject } from "@/types/project";
 
+const getDisplayName = (project: MatchedProject["project"]) => {
+  return project.suggested_name || project.name;
+};
+
 interface ProjectSelectionProps {
   matchedProjects: MatchedProject[];
   selectedProjects: MatchedProject[];
@@ -62,7 +66,7 @@ export function ProjectSelection({
                       {/* Header with title and score */}
                       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-2 gap-2">
                         <h4 className="font-medium text-foreground text-sm sm:text-base break-words leading-tight">
-                          {matchedProject.project.name}
+                          {getDisplayName(matchedProject.project)}
                         </h4>
                         <Badge
                           variant="secondary"

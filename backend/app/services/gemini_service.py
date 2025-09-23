@@ -20,7 +20,8 @@ class GeminiService:
         readme_content = readme_content[:15000] if len(readme_content) > 15000 else readme_content
         
         prompt = f"""You will be given a readme file a github repository.
-    You need to generate these three values for the given readme content:
+    You need to generate these values for the given readme content:
+    suggested_name: Extract the actual project name from the README if different from the repository name. Return "N/A" if no better name is found in the README.
     detailed: A detailed paragraph summarizing the project
     three_liner: A concise 3-liner summary of the project
     technologies: A list of key technologies used in the project
@@ -28,6 +29,7 @@ class GeminiService:
 
     Your response for each question should be in the following format:
     {{
+        "suggested_name": "Extracted project name or N/A",
         "detailed": "Detailed paragraph here",
         "three_liner": "3-liner paragraph (no return to line) summary here it should be a short and straight to the point",
         "technologies": ["Technology 1", "Technology 2", ...],
@@ -35,6 +37,7 @@ class GeminiService:
     }}
 
     The response should adhere to the following:
+    - For suggested_name: Look for project titles in headers, descriptions, or any section that indicates the actual project name. If the repository name seems generic or unclear (like "project1", "my-app", etc.), try to find a better descriptive name from the README content. Return "N/A" if no better name is found.
     - Ensure the JSON is properly formatted.
     - Only the json response should be returned no other data.
     - The 3 liner will be used in a CV so format it to be unambiguous and impactful and straight to the point (no long lines).
@@ -111,8 +114,9 @@ class GeminiService:
         project_info = ""
         for i, matched_project in enumerate(projects, 1):
             project = matched_project.project
+            project_name = project.suggested_name if project.suggested_name else project.name
             project_info += f"""
-            Project {i}: {project.name}
+            Project {i}: {project_name}
             - Description: {project.detailed_paragraph}
             - three liner: {project.three_liner}
             - Technologies: {', '.join(project.technologies)}

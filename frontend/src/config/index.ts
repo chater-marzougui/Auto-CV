@@ -14,6 +14,7 @@ export const config = {
       toggleProjectVisibility: "/api/v1/projects/{projectName}/visibility",
       updateProject: "/api/v1/projects/{projectName}/update",
       updateProjectContent: "/api/v1/projects/{projectName}/content",
+      updateProjectTitle: "/api/v1/projects/{projectName}/title",
       personalInfo: "/api/v1/personal-info",
       updatePersonalInfo: "/api/v1/personal-info",
       jobApplications: "/api/v1/job-applications",
