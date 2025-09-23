@@ -6,19 +6,20 @@ import {
   Briefcase,
   Github,
   PersonStanding,
+  FileCheck,
 } from "lucide-react";
 import { ThemeToggle } from "@/components/theme-toggle";
 
 interface SidebarProps {
   activeTab: string;
   onTabChange: (
-    tab: "job-analysis" | "projects" | "cv-generator" | "personal-info"
+    tab: "job-analysis" | "projects" | "cv-generator" | "personal-info" | "job-applications"
   ) => void;
 }
 
 export function Sidebar({ activeTab, onTabChange }: Readonly<SidebarProps>) {
   const menuItems: Array<{
-    id: "job-analysis" | "projects" | "cv-generator" | "personal-info";
+    id: "job-analysis" | "projects" | "cv-generator" | "personal-info" | "job-applications";
     label: string;
     icon: React.ElementType;
     description: string;
@@ -46,6 +47,12 @@ export function Sidebar({ activeTab, onTabChange }: Readonly<SidebarProps>) {
       label: "Personal Info",
       icon: PersonStanding,
       description: "Manage personal information",
+    },
+    {
+      id: "job-applications" as const,
+      label: "Job Applications",
+      icon: FileCheck,
+      description: "Track your applications",
     },
   ];
 
