@@ -172,7 +172,7 @@ async def generate_full_application(request: GenerateFullApplicationRequest, db:
             job_description = ", ".join(str(v) for v in jd.values() if v)
             job_title = jd.get("title", "Unknown Position")
             company_name = jd.get("company", "Unknown Company")
-            job_desc_text = jd.get("description", "")
+            job_desc_text = jd.get("full_description", "")
             job_requirements = jd.get("requirements", "")
         
         # Step 2: Create job application record if personal_info_id is provided

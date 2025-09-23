@@ -136,24 +136,6 @@ export default function ProjectManagement() {
     setShowProgress(false);
   };
 
-  const onCompleteScraping = async () => {
-    try {
-      const response = await fetch(
-        `${config.api.baseUrl}${config.api.endpoints.projects}`
-      );
-      if (response.ok) {
-        const data = await response.json();
-        setProjects(data.projects || []);
-      }
-    } catch (error) {
-      console.error("Failed to load projects:", error);
-      toast.error("Failed to load projects", {
-        description:
-          error instanceof Error ? error.message : "Unknown error occurred",
-      });
-    }
-  };
-
   const toggleProjectVisibility = async (
     projectName: string,
     currentlyHidden: boolean
@@ -441,7 +423,6 @@ export default function ProjectManagement() {
           isVisible={showProgress}
           onClose={handleProgressClose}
           websocketUrl={websocketUrl}
-          onComplete={onCompleteScraping}
         />
       )}
     </div>

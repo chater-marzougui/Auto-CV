@@ -247,7 +247,6 @@ export function JobAnalysis() {
           title="Job Analysis Progress"
           onClose={handleProgressClose}
           websocketUrl={`ws://localhost:5000/ws/${clientId}`}
-          onComplete={() => {}}
         />
       )}
     </div>
