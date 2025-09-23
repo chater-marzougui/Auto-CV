@@ -31,21 +31,38 @@ export function ThemeProvider({
   )
 
   useEffect(() => {
-    const root = window.document.documentElement
+    const applyTheme = () => {
+      const root = window.document.documentElement
+      root.classList.remove("light", "dark")
 
-    root.classList.remove("light", "dark")
+      // Force dark mode on mobile devices
+      const isMobile = window.innerWidth < 768
 
-    if (theme === "system") {
-      const systemTheme = window.matchMedia("(prefers-color-scheme: dark)")
-        .matches
-        ? "dark"
-        : "light"
+      if (isMobile) {
+        root.classList.add("dark")
+        return
+      }
 
-      root.classList.add(systemTheme)
-      return
+      if (theme === "system") {
+        const systemTheme = window.matchMedia("(prefers-color-scheme: dark)")
+          .matches
+          ? "dark"
+          : "light"
+
+        root.classList.add(systemTheme)
+        return
+      }
+
+      root.classList.add(theme)
     }
 
-    root.classList.add(theme)
+    // Apply theme initially
+    applyTheme()
+
+    // Listen for window resize to handle mobile/desktop theme switching
+    window.addEventListener("resize", applyTheme)
+
+    return () => window.removeEventListener("resize", applyTheme)
   }, [theme])
 
   const value = {

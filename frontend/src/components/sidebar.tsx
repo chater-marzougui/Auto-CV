@@ -9,6 +9,7 @@ import {
   FileCheck,
 } from "lucide-react";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 interface SidebarProps {
   activeTab: string;
@@ -18,6 +19,8 @@ interface SidebarProps {
 }
 
 export function Sidebar({ activeTab, onTabChange }: Readonly<SidebarProps>) {
+  const isMobile = useIsMobile();
+  
   const menuItems: Array<{
     id: "job-analysis" | "projects" | "cv-generator" | "personal-info" | "job-applications";
     label: string;
@@ -102,9 +105,11 @@ export function Sidebar({ activeTab, onTabChange }: Readonly<SidebarProps>) {
       </nav>
 
       {/* Footer */}
-      <div className="p-4 border-t border-sidebar-border">
-        <ThemeToggle />
-      </div>
+      {!isMobile && (
+        <div className="p-4 border-t border-sidebar-border">
+          <ThemeToggle />
+        </div>
+      )}
     </div>
   );
 }
