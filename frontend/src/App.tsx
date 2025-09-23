@@ -2,7 +2,6 @@ import { useState } from "react";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Sidebar } from "@/components/sidebar";
 import { BottomNavbar } from "@/components/bottom-navbar";
-import { MobileHeader } from "@/components/mobile-header";
 import { PersonalInfo } from "@/pages/personal-info";
 import { JobAnalysis } from "@/pages/job-analysis";
 import ProjectManagement from "@/pages/project-management";
@@ -39,15 +38,12 @@ function App() {
     <ThemeProvider defaultTheme="system" storageKey="auto-cv-theme">
       <Toaster richColors duration={3000} position="top-right" />
       <div className="flex flex-col h-screen bg-background">
-        {/* Mobile Header */}
-        {isMobile && <MobileHeader />}
-        
-        <div className="flex flex-1">
+        <div className="flex flex-1 overflow-hidden">
           {/* Desktop Sidebar */}
           {!isMobile && <Sidebar activeTab={activeTab} onTabChange={setActiveTab} />}
           
           {/* Main Content */}
-          <main className={`flex-1 overflow-hidden ${isMobile ? 'pb-16' : ''}`}>
+          <main className={`flex-1 ${isMobile ? 'pb-16' : ''}`}>
             {renderActiveComponent()}
           </main>
         </div>

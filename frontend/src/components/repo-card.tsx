@@ -111,9 +111,9 @@ export const RepoCard: React.FC<RepoCardProps> = ({
   return (
     <Card
       key={index}
-      className={`hover:shadow-md transition-shadow flex flex-col justify-between w-[${
-        isMobile ? 90 : 30
-      }%] min-w-3xs min-h-100`}
+      className={`hover:shadow-md transition-shadow flex flex-col justify-between ${
+        isMobile ? "w-[90%]" : "w-[30%]"
+      } min-w-3xs min-h-100`}
     >
       <CardHeader className="pb-3 w-full">
         <div className="flex items-start justify-between w-full">

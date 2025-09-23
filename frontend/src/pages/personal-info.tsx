@@ -11,6 +11,7 @@ import { ExperienceCard } from "@/components/profile/ExperienceCard";
 import { EducationCard } from "@/components/profile/EducationCard";
 import { InstructionsCard } from "@/components/profile/InstructionsCard";
 import type { PersonalInfo } from "@/types/PersonalInfo";
+import LocalHeader from "@/components/header";
 
 export function PersonalInfo() {
   const [isUpdating, setIsUpdating] = useState(false);
@@ -143,14 +144,11 @@ export function PersonalInfo() {
     <div className="flex flex-col h-full">
       {/* Header */}
       <div className="flex justify-between items-center border-b border-border p-6">
-        <div>
-          <h1 className="font-heading text-2xl font-bold text-foreground">
-            Personal Information
-          </h1>
-          <p className="text-muted-foreground mt-1">
-            Configure your personal information for CV generation
-          </p>
-        </div>
+        <LocalHeader
+          title="Personal Information"
+          description="
+            Configure your personal information for CV generation"
+        />
 
         <div className="flex gap-4 pt-4">
           <Button
@@ -174,26 +172,26 @@ export function PersonalInfo() {
 
       {/* Content */}
       <div className="flex-1 p-6 space-y-6 overflow-auto">
-        <BasicInfoCard 
-          personalInfo={personalInfo} 
-          updatePersonalInfo={updatePersonalInfo} 
+        <BasicInfoCard
+          personalInfo={personalInfo}
+          updatePersonalInfo={updatePersonalInfo}
         />
-        
-        <SkillsCard 
-          skills={personalInfo.skills || {}} 
-          updatePersonalInfo={updatePersonalInfo} 
+
+        <SkillsCard
+          skills={personalInfo.skills || {}}
+          updatePersonalInfo={updatePersonalInfo}
         />
-        
-        <ExperienceCard 
-          experience={personalInfo.experience || []} 
-          updatePersonalInfo={updatePersonalInfo} 
+
+        <ExperienceCard
+          experience={personalInfo.experience || []}
+          updatePersonalInfo={updatePersonalInfo}
         />
-        
-        <EducationCard 
-          education={personalInfo.education || []} 
-          updatePersonalInfo={updatePersonalInfo} 
+
+        <EducationCard
+          education={personalInfo.education || []}
+          updatePersonalInfo={updatePersonalInfo}
         />
-        
+
         <InstructionsCard />
       </div>
     </div>

@@ -15,7 +15,7 @@ import { ProgressCard } from "../components/progress-card";
 import { RepoCard } from "../components/repo-card";
 import { useProjectEdit } from "@/hooks/use-project-edit";
 import type { Project } from "@/types/project";
-import { useIsMobile } from "@/hooks/use-mobile";
+import LocalHeader from "@/components/header";
 
 export default function ProjectManagement() {
   const [projects, setProjects] = useState<Project[]>([]);
@@ -31,7 +31,6 @@ export default function ProjectManagement() {
   const [togglingVisibility, setTogglingVisibility] = useState<Set<string>>(
     new Set()
   );
-  const isMobile = useIsMobile();
 
   // Edit functionality
   const {
@@ -265,18 +264,14 @@ export default function ProjectManagement() {
   return (
     <div className="flex flex-col h-full">
       {/* Header */}
-      <div className="border-b border-border py-6">
+      <div className="border-b border-border p-6">
         <div className="flex items-center justify-between">
-          <div>
-            <h1 className="font-heading text-2xl font-bold text-foreground">
-              Project Management
-            </h1>
-            {!isMobile && (
-              <p className="text-muted-foreground mt-1">
-                Manage your GitHub repositories and project embeddings
-              </p>
-            )}
-          </div>
+          
+          
+          <LocalHeader
+            title="ٌRepos Management"
+            description="Manage your GitHub repositories and project embeddings"
+          />
 
           {/* Progress Toggle */}
           <Button
@@ -354,7 +349,7 @@ export default function ProjectManagement() {
                 ) : (
                   <>
                     <RefreshCw className="mr-2 h-4 w-4" />
-                    Refresh Embeddings
+                    Refresh Embeds
                   </>
                 )}
               </Button>

@@ -13,6 +13,7 @@ import { Loader2, FileText, Download, Github } from "lucide-react";
 import type { Project } from "@/types/project";
 import { toast } from "sonner";
 import { config } from "@/config";
+import LocalHeader from "@/components/header";
 
 export function CVGenerator() {
   const [projects, setProjects] = useState<Project[]>([]);
@@ -111,15 +112,12 @@ export function CVGenerator() {
     <div className="flex flex-col h-full">
       {/* Header */}
       <div className="flex justify-between items-center border-b border-border p-6">
-        <div className="space-y-1">
-          <h1 className="font-heading text-2xl font-bold text-foreground">
-            CV Generator
-          </h1>
-          <p className="text-muted-foreground mt-1">
+        <LocalHeader
+          title="CV Generator"
+          description="
             Create a professional CV by selecting your best projects and entering
-            your personal information
-          </p>
-        </div>
+            your personal information"
+        />
 
         <div className="flex gap-4">
           <Button

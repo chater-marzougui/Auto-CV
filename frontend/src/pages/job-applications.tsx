@@ -16,6 +16,7 @@ import { config } from "@/config";
 import { toast } from "sonner";
 import type { JobApplication } from "@/types/JobApplication";
 import { JobApplicationsList } from "@/components/job-applications/job-application-list";
+import LocalHeader from "@/components/header";
 
 export function JobApplications() {
   const [jobApplications, setJobApplications] = useState<JobApplication[]>([]);
@@ -78,14 +79,11 @@ export function JobApplications() {
       {/* Header */}
       <div className="border-b border-border p-6">
         <div className="flex items-center justify-between">
-          <div>
-            <h1 className="font-heading text-2xl font-bold text-foreground">
-              Job Applications
-            </h1>
-            <p className="text-muted-foreground mt-1">
-              Track and manage all your job applications
-            </p>
-          </div>
+          <LocalHeader
+            title="Job Applications"
+            description="
+             Track and manage all your job applications"
+          />
           <div className="flex items-center gap-3">
             <Button
               variant="outline"

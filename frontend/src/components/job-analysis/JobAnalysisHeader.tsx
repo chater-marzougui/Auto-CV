@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Loader2, FileText, Mail, Download, Activity } from "lucide-react";
 import { config } from "@/config";
+import LocalHeader from "../header";
 
 interface Links {
   cv_download_url?: string;
@@ -35,15 +36,12 @@ export function JobAnalysisHeader({
   return (
     <div className="border-b border-border p-6">
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="font-heading text-2xl font-bold text-foreground">
-            Job Analysis
-          </h1>
-          <p className="text-muted-foreground mt-1">
+        <LocalHeader
+          title="Job Analysis"
+          description="
             Paste a job description to analyze requirements and generate
-            tailored applications
-          </p>
-        </div>
+            tailored applications"
+        />
 
         <div className="flex flex-wrap items-center gap-3">
           {/* Progress Toggle */}
