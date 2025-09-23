@@ -83,7 +83,7 @@ class JobApplicationUpdate(BaseModel):
 class JobApplicationResponse(JobApplicationBase):
     """Schema for job application response"""
     id: int
-    personal_info_id: int
+    personal_info_id: Optional[int] = None
     cv_file_path: Optional[str] = None
     cover_letter_file_path: Optional[str] = None
     cv_download_url: Optional[str] = None

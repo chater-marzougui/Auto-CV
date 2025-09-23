@@ -5,28 +5,23 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Badge } from "@/components/ui/badge";
-import { Search, Filter, Briefcase, Calendar, FileText, Mail, ExternalLink } from "lucide-react";
+import { Search, Filter, Briefcase } from "lucide-react";
 import { config } from "@/config";
 import { toast } from "sonner";
 import type { JobApplication } from "@/types/JobApplication";
+import { JobApplicationsList } from "@/components/job-applications/job-application-list";
 
 export function JobApplications() {
   const [jobApplications, setJobApplications] = useState<JobApplication[]>([]);
-  const [filteredApplications, setFilteredApplications] = useState<JobApplication[]>([]);
+  const [filteredApplications, setFilteredApplications] = useState<
+    JobApplication[]
+  >([]);
   const [isLoading, setIsLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
@@ -75,36 +70,6 @@ export function JobApplications() {
       toast.error("Failed to load job applications");
     } finally {
       setIsLoading(false);
-    }
-  };
-
-  const getStatusBadgeVariant = (status: string) => {
-    switch (status.toLowerCase()) {
-      case "applied":
-        return "default";
-      case "interview":
-        return "secondary";
-      case "accepted":
-        return "default";
-      case "rejected":
-        return "destructive";
-      default:
-        return "outline";
-    }
-  };
-
-  const getStatusColor = (status: string) => {
-    switch (status.toLowerCase()) {
-      case "applied":
-        return "text-blue-600";
-      case "interview":
-        return "text-yellow-600";
-      case "accepted":
-        return "text-green-600";
-      case "rejected":
-        return "text-red-600";
-      default:
-        return "text-gray-600";
     }
   };
 
@@ -182,127 +147,11 @@ export function JobApplications() {
 
       {/* Applications List */}
       <div className="flex-1 p-6 overflow-auto">
-        {isLoading ? (
-          <div className="flex items-center justify-center h-64">
-            <div className="text-center">
-              <Briefcase className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <p className="text-muted-foreground">Loading job applications...</p>
-            </div>
-          </div>
-        ) : filteredApplications.length === 0 ? (
-          <div className="flex items-center justify-center h-64">
-            <div className="text-center">
-              <Briefcase className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <h3 className="text-lg font-medium mb-2">
-                {jobApplications.length === 0 ? "No applications yet" : "No matching applications"}
-              </h3>
-              <p className="text-muted-foreground mb-4">
-                {jobApplications.length === 0
-                  ? "Start by analyzing a job description and generating an application"
-                  : "Try adjusting your search or filter criteria"}
-              </p>
-            </div>
-          </div>
-        ) : (
-          <div className="space-y-4">
-            {filteredApplications.map((application) => (
-              <Card key={application.id} className="hover:shadow-md transition-shadow">
-                <CardHeader>
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <CardTitle className="text-lg">{application.job_title}</CardTitle>
-                      <CardDescription className="flex items-center gap-2 mt-1">
-                        <span>{application.company_name}</span>
-                        <Badge 
-                          variant={getStatusBadgeVariant(application.status)}
-                          className={getStatusColor(application.status)}
-                        >
-                          {application.status}
-                        </Badge>
-                      </CardDescription>
-                    </div>
-                    <div className="text-sm text-muted-foreground text-right">
-                      <div className="flex items-center gap-1">
-                        <Calendar className="h-4 w-4" />
-                        {new Date(application.application_date).toLocaleDateString()}
-                      </div>
-                    </div>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-3">
-                    {/* Job Description Preview */}
-                    {application.job_description && (
-                      <div>
-                        <p className="text-sm text-muted-foreground line-clamp-2">
-                          {application.job_description.substring(0, 200)}
-                          {application.job_description.length > 200 && "..."}
-                        </p>
-                      </div>
-                    )}
-
-                    {/* Download Links */}
-                    <div className="flex flex-wrap gap-2">
-                      {application.cv_download_url && (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          asChild
-                        >
-                          <a
-                            href={application.cv_download_url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="flex items-center gap-2"
-                          >
-                            <FileText className="h-4 w-4" />
-                            CV
-                            <ExternalLink className="h-3 w-3" />
-                          </a>
-                        </Button>
-                      )}
-                      {application.cover_letter_download_url && (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          asChild
-                        >
-                          <a
-                            href={application.cover_letter_download_url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="flex items-center gap-2"
-                          >
-                            <Mail className="h-4 w-4" />
-                            Cover Letter
-                            <ExternalLink className="h-3 w-3" />
-                          </a>
-                        </Button>
-                      )}
-                    </div>
-
-                    {/* Notes */}
-                    {application.notes && (
-                      <div>
-                        <p className="text-sm">
-                          <span className="font-medium">Notes: </span>
-                          {application.notes}
-                        </p>
-                      </div>
-                    )}
-
-                    {/* Matched Projects Count */}
-                    {application.matched_projects && application.matched_projects.length > 0 && (
-                      <div className="text-sm text-muted-foreground">
-                        {application.matched_projects.length} project(s) matched
-                      </div>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        )}
+        <JobApplicationsList
+          jobApplications={filteredApplications}
+          totalCount={jobApplications.length}
+          isLoading={isLoading}
+        />
       </div>
     </div>
   );
