@@ -16,6 +16,8 @@ export const config = {
       updateProjectContent: "/api/v1/projects/{projectName}/content",
       personalInfo: "/api/v1/personal-info",
       updatePersonalInfo: "/api/v1/personal-info",
+      jobApplications: "/api/v1/job-applications",
+      jobApplicationsByPersonalInfo: "/api/v1/personal-info/{personalInfoId}/job-applications",
     }
   },
   

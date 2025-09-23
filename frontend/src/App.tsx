@@ -7,8 +7,9 @@ import ProjectManagement from "@/pages/project-management";
 import "./App.css";
 import { Toaster } from "sonner";
 import { CVGenerator } from "./pages/cv-generator";
+import { JobApplications } from "./pages/job-applications";
 
-type ActiveTab = "job-analysis" | "projects" | "cv-generator" | "personal-info";
+type ActiveTab = "job-analysis" | "projects" | "cv-generator" | "personal-info" | "job-applications";
 
 function App() {
   const [activeTab, setActiveTab] = useState<ActiveTab>("job-analysis");
@@ -23,6 +24,8 @@ function App() {
         return <CVGenerator />;
       case "personal-info":
         return <PersonalInfo />;
+      case "job-applications":
+        return <JobApplications />;
       default:
         return <JobAnalysis />;
     }
