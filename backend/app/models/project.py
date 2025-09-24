@@ -6,6 +6,7 @@ from app.database.schemas import PersonalInfoBase
 
 class Project(BaseModel):
     name: str
+    suggested_name: Optional[str] = None
     url: str
     description: str  # Original GitHub description
     readme_content: str  # Full README content
@@ -21,6 +22,10 @@ class Project(BaseModel):
     created_at: datetime
     updated_at: datetime
     hidden_from_search: bool = False  # New field to hide project from similarity search
+    
+    def get_display_name(self) -> str:
+        """Get the display name, preferring suggested_name over name"""
+        return self.suggested_name if self.suggested_name else self.name
     
 class JobDescription(BaseModel):
     description: str

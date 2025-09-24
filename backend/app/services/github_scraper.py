@@ -222,6 +222,7 @@ class GitHubScraper:
                 
                 return Project(
                     name=repo.name,
+                    suggested_name=None,  # No README means no way to extract suggested name
                     url=repo.html_url,
                     description=repo.description or "No description provided",
                     readme_content="",
@@ -266,6 +267,11 @@ class GitHubScraper:
             detailed_paragraph = gemini_response.get("detailed", "")
             technologies = gemini_response.get("technologies", "")
             bad_readme = gemini_response.get("bad_readme", False)
+            suggested_name = gemini_response.get("suggested_name", "")
+            
+            # Process suggested_name - set to None if it's "N/A" or empty
+            if suggested_name in ["N/A", "", None]:
+                suggested_name = None
             
             if bad_readme:
                 await self.send_progress(
@@ -297,6 +303,7 @@ class GitHubScraper:
                 
             project = Project(
                 name=repo.name,
+                suggested_name=suggested_name,
                 url=repo.html_url,
                 description=repo.description or "No description provided",
                 readme_content=readme_content,

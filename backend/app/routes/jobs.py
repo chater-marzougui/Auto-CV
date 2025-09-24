@@ -37,6 +37,9 @@ class ProjectContentUpdate(BaseModel):
     three_liner: str
     technologies: List[str]
 
+class ProjectTitleUpdate(BaseModel):
+    suggested_name: Optional[str]
+
 
 @router.post("/match-projects", response_model=List[MatchedProject])
 async def match_projects_to_job(job_description: JobDescriptionInput, top_k: int = 15):
@@ -307,6 +310,35 @@ def update_project_content(project_name: str, content_update: ProjectContentUpda
         
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error updating project content: {str(e)}")
+
+@router.patch("/projects/{project_name}/title")
+def update_project_title(project_name: str, title_update: ProjectTitleUpdate):
+    """
+    Update project suggested_name (title)
+    """
+    try:
+        scraper = GitHubScraper()
+        projects = scraper.load_projects()
+        
+        # Find the project
+        project_index = next((i for i, p in enumerate(projects) if p.name == project_name), None)
+        
+        if project_index is None:
+            raise HTTPException(status_code=404, detail=f"Project '{project_name}' not found")
+        
+        # Update the project suggested_name
+        projects[project_index].suggested_name = title_update.suggested_name
+        
+        # Save the updated projects
+        scraper.save_projects(projects)
+        
+        return {
+            "message": f"Project '{project_name}' title updated successfully",
+            "suggested_name": title_update.suggested_name,
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error updating project title: {str(e)}")
 
 @router.post("/projects/{project_name}/update")
 async def update_single_project(project_name: str, background_tasks: BackgroundTasks):

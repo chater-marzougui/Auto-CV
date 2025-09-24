@@ -15,6 +15,10 @@ import { toast } from "sonner";
 import { config } from "@/config";
 import LocalHeader from "@/components/header";
 
+const getDisplayName = (project: Project) => {
+  return project.suggested_name || project.name;
+};
+
 export function CVGenerator() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [selectedProjects, setSelectedProjects] = useState<Project[]>([]);
@@ -199,7 +203,7 @@ export function CVGenerator() {
                       <div className="flex-1">
                         <div className="flex items-center justify-between mb-2">
                           <h4 className="font-medium text-foreground">
-                            {project.name}
+                            {getDisplayName(project)}
                           </h4>
                           <div className="flex items-center gap-2">
                             <Badge variant="outline" className="text-xs">
