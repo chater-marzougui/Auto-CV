@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import { config } from "@/config";
 import { toast } from "sonner";
 import { AnalysisResults } from "@/components/job-analysis/AnalysisResults";
@@ -9,29 +8,19 @@ import { ProjectSelection } from "@/components/job-analysis/ProjectSelection";
 import type { MatchedProject } from "@/types/project";
 import { JobDescriptionInput } from "@/components/job-analysis/JobDescriptionInput";
 import { ProgressCard } from "@/components/progress-card";
-interface JobAnalysisResult {
-  job_analysis_result: JobDescriptionResult;
-  matched_projects: Array<{
-    name: string;
-    similarity_score: number;
-  }>;
-  cv_download_url?: string;
-  cover_letter_download_url?: string;
-}
-
-interface JobDescriptionResult {
-  title: string;
-  company: string;
-  required_technologies: string[];
-  experience_level: string;
-  soft_skills: string[];
-  analysis_summary: string;
-  full_description: string;
-  requirements: string;
-}
+import { useJobAnalysis } from "@/contexts/JobAnalysisContext";
 
 interface GenerateApplicationRequest {
-  job_description: JobDescriptionResult;
+  job_description: {
+    title: string;
+    company: string;
+    required_technologies: string[];
+    experience_level: string;
+    soft_skills: string[];
+    analysis_summary: string;
+    full_description: string;
+    requirements: string;
+  };
   personal_info_id: string | number | null;
   selected_projects?: MatchedProject[];
   top_k?: number;
@@ -39,17 +28,24 @@ interface GenerateApplicationRequest {
 }
 
 export function JobAnalysis() {
-  const [jobDescription, setJobDescription] = useState("");
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [isGenerating, setIsGenerating] = useState(false);
+  const {
+    jobDescription,
+    setJobDescription,
+    analysisResult,
+    setAnalysisResult,
+    matchedProjects,
+    setMatchedProjects,
+    selectedProjects,
+    setSelectedProjects,
+    isAnalyzing,
+    setIsAnalyzing,
+    isGenerating,
+    setIsGenerating,
+    showProgress,
+    setShowProgress
+  } = useJobAnalysis();
+  
   const userId = localStorage.getItem("user_id") || null;
-  const [analysisResult, setAnalysisResult] =
-    useState<JobAnalysisResult | null>(null);
-  const [matchedProjects, setMatchedProjects] = useState<MatchedProject[]>([]);
-  const [selectedProjects, setSelectedProjects] = useState<MatchedProject[]>(
-    []
-  );
-  const [showProgress, setShowProgress] = useState(false);
   const clientId = `job-analysis-${userId || "guest"}}`;
 
   const analyzeJob = async () => {
@@ -184,15 +180,13 @@ export function JobAnalysis() {
 
       const result = await response.json();
 
-      setAnalysisResult((prev) =>
-        prev
-          ? {
-              ...prev,
-              cv_download_url: result.cv.download_url,
-              cover_letter_download_url: result.cover_letter.download_url,
-            }
-          : null
-      );
+      if (analysisResult) {
+        setAnalysisResult({
+          ...analysisResult,
+          cv_download_url: result.cv.download_url,
+          cover_letter_download_url: result.cover_letter.download_url,
+        });
+      }
 
       toast.success("Application Generated", {
         description: "CV and cover letter generated successfully",
