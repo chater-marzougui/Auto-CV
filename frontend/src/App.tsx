@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { ThemeProvider } from "@/components/theme-provider";
+import { JobAnalysisProvider } from "@/contexts/JobAnalysisContext";
 import { Sidebar } from "@/components/sidebar";
 import { BottomNavbar } from "@/components/bottom-navbar";
 import { PersonalInfo } from "@/pages/personal-info";
@@ -36,21 +37,23 @@ function App() {
 
   return (
     <ThemeProvider defaultTheme="system" storageKey="auto-cv-theme">
-      <Toaster richColors duration={3000} position="top-right" />
-      <div className="flex flex-col h-screen bg-background">
-        <div className="flex flex-1 overflow-hidden">
-          {/* Desktop Sidebar */}
-          {!isMobile && <Sidebar activeTab={activeTab} onTabChange={setActiveTab} />}
+      <JobAnalysisProvider>
+        <Toaster richColors duration={3000} position="top-right" />
+        <div className="flex flex-col h-screen bg-background">
+          <div className="flex flex-1 overflow-hidden">
+            {/* Desktop Sidebar */}
+            {!isMobile && <Sidebar activeTab={activeTab} onTabChange={setActiveTab} />}
+            
+            {/* Main Content */}
+            <main className={`flex-1 ${isMobile ? 'pb-16' : ''}`}>
+              {renderActiveComponent()}
+            </main>
+          </div>
           
-          {/* Main Content */}
-          <main className={`flex-1 ${isMobile ? 'pb-16' : ''}`}>
-            {renderActiveComponent()}
-          </main>
+          {/* Mobile Bottom Navigation */}
+          {isMobile && <BottomNavbar activeTab={activeTab} onTabChange={setActiveTab} />}
         </div>
-        
-        {/* Mobile Bottom Navigation */}
-        {isMobile && <BottomNavbar activeTab={activeTab} onTabChange={setActiveTab} />}
-      </div>
+      </JobAnalysisProvider>
     </ThemeProvider>
   );
 }
