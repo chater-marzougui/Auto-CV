@@ -87,7 +87,7 @@ export function PersonalInfo() {
     setIsLoading(true);
     try {
       const response = await fetch(
-        `${config.api.baseUrl}${config.api.endpoints.personalInfo}/${userId}`,
+        `${config.api.baseUrl}${config.api.endpoints.personalInfo}/${parseInt(userId || "1")}`,
         {
           method: "GET",
           headers: { "Content-Type": "application/json" },

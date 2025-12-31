@@ -98,12 +98,6 @@ class GitHubScraper:
         
         if not self.github_token:
             log_warning(self.logger, "No GitHub token provided - rate limits may apply", username)
-            await self.send_progress(
-                "No GitHub token provided - rate limits may apply", 
-                "warning",
-                alert_type="warning",
-                alert_message="Consider adding a GitHub token for better performance"
-            )
         
         try:
             # Run GitHub API calls in executor to avoid blocking

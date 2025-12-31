@@ -45,6 +45,10 @@ export default function ProjectManagement() {
 
   useEffect(() => {
     loadProjects();
+    const storedUsername = localStorage.getItem("github_username");
+    if (storedUsername) {
+      setGithubUsername(storedUsername);
+    }
   }, []);
 
   const loadProjects = async () => {
@@ -73,6 +77,7 @@ export default function ProjectManagement() {
 
     setIsScraping(true);
     setShowProgress(true);
+    localStorage.setItem("github_username", githubUsername);
 
     try {
       // Start the scraping process
@@ -305,6 +310,7 @@ export default function ProjectManagement() {
                 value={githubUsername}
                 onChange={(e) => setGithubUsername(e.target.value)}
                 className="flex-1"
+                autoComplete="given-name webauthn"
                 disabled={isScraping}
               />
               <Button

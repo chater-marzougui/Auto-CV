@@ -155,7 +155,7 @@ export function JobAnalysis() {
     
     try {
       const requestBody: GenerateApplicationRequest = {
-        personal_info_id: userId,
+        personal_info_id: parseInt(userId),
         job_description: analysisResult.job_analysis_result,
         client_id: clientId,
       };

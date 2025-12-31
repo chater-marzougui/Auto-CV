@@ -9,7 +9,7 @@ class GeminiService:
             raise ValueError("GEMINI_API_KEY environment variable not set")
         genai.configure(api_key=apikey)
         self.fast_model = genai.GenerativeModel("gemini-2.0-flash")
-        self.precise_model = genai.GenerativeModel("gemini-2.5-flash")
+        self.precise_model = genai.GenerativeModel("gemini-3-flash-preview")
 
     def generate_project_summary(self, repo_name: str, readme_content: str, file_tree: list) -> dict:
         """
@@ -101,7 +101,7 @@ class GeminiService:
     {job_description}
     """
 
-        response = self.fast_model.generate_content([prompt])
+        response = self.precise_model.generate_content([prompt])
         json_response = self._extract_json(response.text)
 
         return {**json_response, "full_description": job_description}
@@ -208,7 +208,7 @@ class GeminiService:
     {job_description}
     """
 
-        response = self.fast_model.generate_content([prompt])
+        response = self.precise_model.generate_content([prompt])
         json_response = self._extract_json(response.text)
         
         return json_response

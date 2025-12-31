@@ -85,7 +85,6 @@ class CoverLetterGenerator:
         
         except Exception as e:
             raise RuntimeError(f"Error extracting text from PDF: {str(e)}")
-
     def _create_latex_document(self, content: str, personal_info: dict) -> str:
         """
         Create LaTeX document with generated content using professional template
@@ -164,6 +163,10 @@ class CoverLetterGenerator:
 \letterheader
 
 """ + formatted_content + r"""
+
+    \vspace{1cm}
+    Sincerely,\\[0.3cm]
+    """ + name + r"""
 
 \end{document}
 """

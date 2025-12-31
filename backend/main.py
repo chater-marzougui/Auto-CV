@@ -125,7 +125,7 @@ async def perform_github_scraping(github_username: str, client_id: str):
         log_progress(api_logger, "Starting GitHub scraping task", repo=github_username)
         
         # Create scraper with WebSocket support
-        scraper = GitHubScraper(websocket_manager=websocket_manager, client_id=client_id)
+        scraper = GitHubScraper(github_token=os.getenv("GITHUB_TOKEN"), websocket_manager=websocket_manager, client_id=client_id)
         
         # Send initial connection test
         await websocket_manager.send_progress(client_id, {
